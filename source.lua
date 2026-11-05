@@ -197,6 +197,7 @@ NeverLose.AccentColor = Color3.fromRGB(78, 127, 252);
 NeverLose.MainColor = Color3.fromRGB(8, 8, 13);
 NeverLose.RegisiteryColor = {};
 NeverLose.NameRegisitry = {};
+NeverLose.SectionMeta = setmetatable({}, {__mode = 'k'});
 NeverLose.IsMosueOverOtherFrame = false;
 NeverLose.GlobalLogo = "rbxassetid://120358385035996";
 NeverLose.ImageColorMapping = "rbxassetid://4155801252";
@@ -244,10 +245,11 @@ function NeverLose:AddSignal(RBXSignal)
 	return RBXSignal;
 end;
 
-function NeverLose:AddQuery(ItemRoot: Frame , Name : string)
+function NeverLose:AddQuery(ItemRoot: Frame , Name : string , Meta)
 	table.insert(NeverLose.NameRegisitry , {
 		Root = ItemRoot,
 		Idx = Name,
+		Meta = Meta,
 	});
 end;
 
@@ -893,10 +895,6 @@ end;
 NeverLose.IsStudio = RunService:IsStudio();
 NeverLose.IsMobile = UserInputService.TouchEnabled;
 
-if NeverLose.IsMobile then
-	NeverLose.Scales.Default = NeverLose.Scales.Mobile;
-end;
-
 NeverLose.CreateInput = LPH_NO_VIRTUALIZE(function(self , Frame , Callback)
 	local Button = Instance.new('ImageButton',Frame);
 
@@ -1122,23 +1120,6 @@ end);
 
 local EmptyFunction = function() end;
 
-function NeverLose:GetScaleOf(Object)
-	local Total = 1;
-	local Current = Object;
-
-	while Current do
-		local Found = Current:FindFirstChildOfClass("UIScale");
-
-		if Found then
-			Total = Total * Found.Scale;
-		end;
-
-		Current = Current.Parent;
-	end;
-
-	return math.max(Total, 0.01);
-end;
-
 function NeverLose:GetPopupScale()
 	if NeverLose.IsMobile and NeverLose.MobileScale then
 		return NeverLose.MobileScale;
@@ -1308,7 +1289,7 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 
 	NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 		NeverLose.PlayAnimate(OptionHandler , SlowyTween , {
-			Size = UDim2.new(0, 220, 0, (UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) - 1)
+			Size = UDim2.new(0, 220, 0, UIListLayout.AbsoluteContentSize.Y - 1)
 		})
 	end)));
 
@@ -2929,9 +2910,9 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 			UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 			NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-				DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0,(UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)))
+				DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y)
 				NeverLose.PlayAnimate(DropdownHandler , SlowyTween , {
-					Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / NeverLose:GetScaleOf(Dropdown)) + 5) + DropdownLib.ExtentSize, 0, math.min((UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 5, 250));
+					Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
 				})
 			end)));
 
@@ -2942,7 +2923,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 					DropdownHandler.AnchorPoint = Vector2.new(0.5,0)
 				end;
 
-				local HalfWidth = (((Dropdown.AbsoluteSize.X / NeverLose:GetScaleOf(Dropdown)) + 5 + DropdownLib.ExtentSize) * PopupScale) / 2;
+				local HalfWidth = (((Dropdown.AbsoluteSize.X / PopupScale) + 5 + DropdownLib.ExtentSize) * PopupScale) / 2;
 				local View = NeverLose.ScreenGui.AbsoluteSize;
 				local CenterX = math.clamp(Dropdown.AbsolutePosition.X + HalfWidth, HalfWidth, math.max(View.X - HalfWidth, HalfWidth));
 
@@ -2962,7 +2943,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 						Scale = PopupScale
 					})
 
-					DropdownHandler.Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / NeverLose:GetScaleOf(Dropdown)) + 5) + DropdownLib.ExtentSize, 0, math.min((UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 5, 250));
+					DropdownHandler.Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
 
 					SetPosition();
 
@@ -3478,6 +3459,7 @@ end;
 function NeverLose:RegisiterItem(Frame: Frame , Signel)
 	local idx = {};
 	local LayerIndex = Frame.ZIndex;
+	local Meta = NeverLose.SectionMeta[Frame];
 
 	function idx:AddLabel(Name: string,Warp: boolean)
 		local BasedFrame = Instance.new("Frame")
@@ -3496,7 +3478,7 @@ function NeverLose:RegisiterItem(Frame: Frame , Signel)
 		BasedFrame.Size = UDim2.new(1, 0, 0, 30)
 		BasedFrame.ZIndex = LayerIndex + 8
 
-		NeverLose:AddQuery(BasedFrame , Name);
+		NeverLose:AddQuery(BasedFrame , Name , Meta);
 
 		BasedLabel.Name = NeverLose.RandomString();
 		BasedLabel.Parent = BasedFrame
@@ -3654,7 +3636,7 @@ function NeverLose:RegisiterItem(Frame: Frame , Signel)
 		local UICorner = Instance.new("UICorner")
 		local Icon = Instance.new("TextLabel")
 
-		NeverLose:AddQuery(ButtonFrame , Config.Name);
+		NeverLose:AddQuery(ButtonFrame , Config.Name , Meta);
 
 		ButtonFrame.Name = NeverLose.RandomString();
 		ButtonFrame.Parent = Frame
@@ -3935,15 +3917,11 @@ function NeverLose:CreateWindow(Config)
 			viewport = CurrentCamera.ViewportSize;
 		end;
 
-		if Config.Size.Y.Offset > NeverLose.Scales.Mobile.Y.Offset then
-			Config.Size = UDim2.fromOffset(Config.Size.X.Offset, NeverLose.Scales.Mobile.Y.Offset);
-		end;
-
 		local baseX = Config.Size.X.Offset;
 		local baseY = Config.Size.Y.Offset;
 		local fit = math.min((viewport.X - 24) / baseX, (viewport.Y - 24) / baseY);
 
-		NeverLose.MobileScale = math.clamp(math.min(fit, 0.85), 0.45, 0.85);
+		NeverLose.MobileScale = math.clamp(math.min(fit, 0.72), 0.45, 0.72);
 	end;
 
 	local Window = {
@@ -4368,7 +4346,7 @@ function NeverLose:CreateWindow(Config)
 	UIListLayout.Padding = UDim.new(0, 5)
 
 	NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-		LeftScrollingFrame.CanvasSize = UDim2.fromOffset(0,(UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 1)
+		LeftScrollingFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 1)
 	end)))
 
 	BottomFrame.Name = NeverLose.RandomString();
@@ -4645,10 +4623,76 @@ function NeverLose:CreateWindow(Config)
 
 	do
 		Window.Searching = false;
-		local Input = NeverLose:CreateInput(SearchIcon , LPH_NO_VIRTUALIZE(function()
-			Window.Searching = not Window.Searching;
 
-			if Window.Searching then
+		local SuggestWidth = 250;
+		local SuggestRowHeight = 36;
+		local SuggestLimit = 6;
+		local SuggestRows = {};
+		local SuggestTween;
+		local FlashTween = TweenInfo.new(1.6 , Enum.EasingStyle.Quint , Enum.EasingDirection.In);
+
+		local SuggestFrame = Instance.new("Frame")
+		local SuggestCorner = Instance.new("UICorner")
+		local SuggestStroke = Instance.new("UIStroke")
+		local SuggestPadding = Instance.new("UIPadding")
+		local SuggestLayout = Instance.new("UIListLayout")
+
+		SuggestFrame.Name = NeverLose.RandomString();
+		SuggestFrame.Parent = RightMenuFrame
+		SuggestFrame.Active = true
+		SuggestFrame.AnchorPoint = Vector2.new(1, 0)
+		SuggestFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 27)
+		SuggestFrame.BackgroundTransparency = 0.035
+		SuggestFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		SuggestFrame.BorderSizePixel = 0
+		SuggestFrame.ClipsDescendants = true
+		SuggestFrame.Position = UDim2.new(1, -10, 0, 46)
+		SuggestFrame.Size = UDim2.new(0, SuggestWidth, 0, 0)
+		SuggestFrame.Visible = false
+		SuggestFrame.ZIndex = 70
+
+		SuggestCorner.CornerRadius = UDim.new(0, 10)
+		SuggestCorner.Parent = SuggestFrame
+
+		SuggestStroke.Transparency = 0.650
+		SuggestStroke.Color = Color3.fromRGB(45, 48, 58)
+		SuggestStroke.Parent = SuggestFrame
+
+		SuggestPadding.PaddingTop = UDim.new(0, 4)
+		SuggestPadding.PaddingBottom = UDim.new(0, 4)
+		SuggestPadding.PaddingLeft = UDim.new(0, 4)
+		SuggestPadding.PaddingRight = UDim.new(0, 4)
+		SuggestPadding.Parent = SuggestFrame
+
+		SuggestLayout.Parent = SuggestFrame
+		SuggestLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		SuggestLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		SuggestLayout.Padding = UDim.new(0, 2)
+
+		local function ClearSuggest()
+			for i,v in next , SuggestRows do
+				v:Destroy();
+			end;
+
+			table.clear(SuggestRows);
+		end;
+
+		local function HideSuggest()
+			if SuggestTween then
+				SuggestTween:Cancel();
+				SuggestTween = nil;
+			end;
+
+			ClearSuggest();
+
+			SuggestFrame.Visible = false;
+			SuggestFrame.Size = UDim2.new(0, SuggestWidth, 0, 0);
+		end;
+
+		local function SetSearching(State)
+			Window.Searching = State;
+
+			if State then
 				NeverLose.PlayAnimate(SearchFrame , VSlowTween , {
 					Size = UDim2.new(0, 220, 0, 30)
 				})
@@ -4674,12 +4718,292 @@ function NeverLose:CreateWindow(Config)
 				})
 
 				SearchBox.Text = "";
+
+				HideSuggest();
 			end;
+		end;
+
+		local function Escape(Value)
+			return (string.gsub(string.gsub(string.gsub(Value , '&' , '&amp;') , '<' , '&lt;') , '>' , '&gt;'));
+		end;
+
+		local function Highlight(Name , Start , Length)
+			local Color = NeverLose.AccentColor;
+			local Hex = string.format('rgb(%d,%d,%d)' , math.floor(Color.R * 255 + 0.5) , math.floor(Color.G * 255 + 0.5) , math.floor(Color.B * 255 + 0.5));
+
+			return Escape(string.sub(Name , 1 , Start - 1)) .. '<font color="' .. Hex .. '"><b>' .. Escape(string.sub(Name , Start , Start + Length - 1)) .. '</b></font>' .. Escape(string.sub(Name , Start + Length));
+		end;
+
+		local function Flash(Root)
+			local Overlay = Instance.new("Frame")
+			local OverlayCorner = Instance.new("UICorner")
+			local OverlayStroke = Instance.new("UIStroke")
+
+			Overlay.Name = NeverLose.RandomString();
+			Overlay.Parent = Root
+			Overlay.BackgroundColor3 = NeverLose.AccentColor
+			Overlay.BackgroundTransparency = 0.7
+			Overlay.BorderSizePixel = 0
+			Overlay.Size = UDim2.fromScale(1, 1)
+			Overlay.ZIndex = Root.ZIndex + 1
+
+			OverlayCorner.CornerRadius = UDim.new(0, 6)
+			OverlayCorner.Parent = Overlay
+
+			OverlayStroke.Color = NeverLose.AccentColor
+			OverlayStroke.Transparency = 0.2
+			OverlayStroke.Parent = Overlay
+
+			NeverLose.PlayAnimate(Overlay , FlashTween , {
+				BackgroundTransparency = 1
+			})
+
+			NeverLose.PlayAnimate(OverlayStroke , FlashTween , {
+				Transparency = 1
+			})
+
+			task.delay(1.7 , function()
+				Overlay:Destroy();
+			end);
+		end;
+
+		local function JumpTo(Entry)
+			local Root = Entry.Root;
+			local Tab = Entry.Meta.Tab;
+
+			SetSearching(false);
+			Tab.Select();
+
+			task.spawn(function()
+				task.wait(0.5);
+
+				if not Root.Parent then
+					return;
+				end;
+
+				local Scroll = Root:FindFirstAncestorOfClass('ScrollingFrame');
+
+				if Scroll then
+					local Scale = math.max(Window.UIScale.Scale , 0.01);
+					local Offset = (Root.AbsolutePosition.Y - Scroll.AbsolutePosition.Y) / Scale + Scroll.CanvasPosition.Y;
+					local Limit = math.max(Scroll.CanvasSize.Y.Offset - Scroll.AbsoluteSize.Y / Scale , 0);
+
+					NeverLose.PlayAnimate(Scroll , VSlowTween , {
+						CanvasPosition = Vector2.new(0 , math.clamp(Offset - 40 , 0 , Limit))
+					})
+				end;
+
+				Flash(Root);
+			end);
+		end;
+
+		local function CreateRow(Entry , Start , Length , Index)
+			local Row = Instance.new("Frame")
+			local RowCorner = Instance.new("UICorner")
+			local RowIcon = Instance.new("TextLabel")
+			local RowName = Instance.new("TextLabel")
+			local RowPath = Instance.new("TextLabel")
+
+			Row.Name = NeverLose.RandomString();
+			Row.Parent = SuggestFrame
+			Row.BackgroundColor3 = Color3.fromRGB(41, 45, 49)
+			Row.BackgroundTransparency = 1
+			Row.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			Row.BorderSizePixel = 0
+			Row.LayoutOrder = Index
+			Row.Size = UDim2.new(1, 0, 0, SuggestRowHeight)
+			Row.ZIndex = 71
+
+			RowCorner.CornerRadius = UDim.new(0, 6)
+			RowCorner.Parent = Row
+
+			RowIcon.Name = NeverLose.RandomString();
+			RowIcon.Parent = Row
+			RowIcon.AnchorPoint = Vector2.new(0, 0.5)
+			RowIcon.BackgroundTransparency = 1.000
+			RowIcon.BorderSizePixel = 0
+			RowIcon.Position = UDim2.new(0, 4, 0.5, 0)
+			RowIcon.Size = UDim2.new(0, 24, 0, 24)
+			RowIcon.ZIndex = 72
+			RowIcon.FontFace = NeverLose.BuiltInBold
+			RowIcon.Text = Entry.Meta.Tab.Icon or "magnifying-glass"
+			RowIcon.TextColor3 = NeverLose.AccentColor
+			RowIcon.TextSize = 15.000
+			RowIcon.TextWrapped = true
+
+			RowName.Name = NeverLose.RandomString();
+			RowName.Parent = Row
+			RowName.BackgroundTransparency = 1.000
+			RowName.BorderSizePixel = 0
+			RowName.Position = UDim2.new(0, 32, 0, 4)
+			RowName.Size = UDim2.new(1, -38, 0, 16)
+			RowName.ZIndex = 72
+			RowName.Font = Enum.Font.GothamMedium
+			RowName.RichText = true
+			RowName.Text = Highlight(Entry.Idx , Start , Length)
+			RowName.TextColor3 = Color3.fromRGB(255, 255, 255)
+			RowName.TextSize = 12.000
+			RowName.TextTransparency = 0.100
+			RowName.TextTruncate = Enum.TextTruncate.AtEnd
+			RowName.TextXAlignment = Enum.TextXAlignment.Left
+
+			RowPath.Name = NeverLose.RandomString();
+			RowPath.Parent = Row
+			RowPath.BackgroundTransparency = 1.000
+			RowPath.BorderSizePixel = 0
+			RowPath.Position = UDim2.new(0, 32, 0, 20)
+			RowPath.Size = UDim2.new(1, -38, 0, 12)
+			RowPath.ZIndex = 72
+			RowPath.Font = Enum.Font.GothamMedium
+			RowPath.Text = tostring(Entry.Meta.Tab.Name) .. "  /  " .. Entry.Meta.Section
+			RowPath.TextColor3 = Color3.fromRGB(223, 223, 223)
+			RowPath.TextSize = 10.000
+			RowPath.TextTransparency = 0.550
+			RowPath.TextTruncate = Enum.TextTruncate.AtEnd
+			RowPath.TextXAlignment = Enum.TextXAlignment.Left
+
+			local Click = NeverLose:CreateInput(Row , LPH_NO_VIRTUALIZE(function()
+				JumpTo(Entry);
+			end));
+
+			Click.MouseEnter:Connect(LPH_NO_VIRTUALIZE(function()
+				NeverLose.PlayAnimate(Row , FastTween , {
+					BackgroundTransparency = 0.6
+				})
+			end));
+
+			Click.MouseLeave:Connect(LPH_NO_VIRTUALIZE(function()
+				NeverLose.PlayAnimate(Row , FastTween , {
+					BackgroundTransparency = 1
+				})
+			end));
+
+			return Row;
+		end;
+
+		local function CreateEmptyRow()
+			local Row = Instance.new("Frame")
+			local RowLabel = Instance.new("TextLabel")
+
+			Row.Name = NeverLose.RandomString();
+			Row.Parent = SuggestFrame
+			Row.BackgroundTransparency = 1
+			Row.BorderSizePixel = 0
+			Row.Size = UDim2.new(1, 0, 0, 30)
+			Row.ZIndex = 71
+
+			RowLabel.Name = NeverLose.RandomString();
+			RowLabel.Parent = Row
+			RowLabel.BackgroundTransparency = 1.000
+			RowLabel.BorderSizePixel = 0
+			RowLabel.Position = UDim2.new(0, 10, 0, 0)
+			RowLabel.Size = UDim2.new(1, -20, 1, 0)
+			RowLabel.ZIndex = 72
+			RowLabel.Font = Enum.Font.GothamMedium
+			RowLabel.Text = "No results"
+			RowLabel.TextColor3 = Color3.fromRGB(223, 223, 223)
+			RowLabel.TextSize = 12.000
+			RowLabel.TextTransparency = 0.550
+			RowLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+			return Row;
+		end;
+
+		local function UpdateSuggest()
+			local Query = string.match(string.lower(SearchBox.Text) , '^%s*(.-)%s*$') or '';
+
+			if not Window.Searching or Query == '' then
+				HideSuggest();
+
+				return;
+			end;
+
+			local Found = {};
+
+			for i,v in next , NeverLose.NameRegisitry do
+				if v.Meta and v.Root and v.Root.Parent and type(v.Idx) == 'string' then
+					local Lower = string.lower(v.Idx);
+					local Start = string.find(Lower , Query , 1 , true);
+
+					if Start then
+						local Rank = 3;
+
+						if Start == 1 then
+							Rank = 1;
+						elseif string.find(string.sub(Lower , Start - 1 , Start - 1) , '[%s%p]') then
+							Rank = 2;
+						end;
+
+						table.insert(Found , {
+							Entry = v,
+							Start = Start,
+							Rank = Rank,
+							Order = i
+						});
+					end;
+				end;
+			end;
+
+			table.sort(Found , function(a , b)
+				if a.Rank ~= b.Rank then
+					return a.Rank < b.Rank;
+				end;
+
+				return a.Order < b.Order;
+			end);
+
+			ClearSuggest();
+
+			local Count = math.min(#Found , SuggestLimit);
+			local Height;
+
+			if Count == 0 then
+				table.insert(SuggestRows , CreateEmptyRow());
+
+				Height = 38;
+			else
+				for i = 1 , Count do
+					table.insert(SuggestRows , CreateRow(Found[i].Entry , Found[i].Start , #Query , i));
+				end;
+
+				Height = Count * SuggestRowHeight + (Count - 1) * 2 + 8;
+			end;
+
+			if not SuggestFrame.Visible then
+				SuggestFrame.Position = UDim2.new(1, -10, 0, 38);
+				SuggestFrame.Visible = true;
+
+				NeverLose.PlayAnimate(SuggestFrame , SlowyTween , {
+					Position = UDim2.new(1, -10, 0, 46)
+				})
+			end;
+
+			if SuggestTween then
+				SuggestTween:Cancel();
+			end;
+
+			SuggestTween = NeverLose.PlayAnimate(SuggestFrame , SlowyTween , {
+				Size = UDim2.new(0, SuggestWidth, 0, Height)
+			});
+		end;
+
+		local Input = NeverLose:CreateInput(SearchIcon , LPH_NO_VIRTUALIZE(function()
+			SetSearching(not Window.Searching);
 		end));
 
 		local wati_for_finish = tick();
 		local last_thread;
 		local max_time = 0.2;
+
+		NeverLose:AddSignal(SearchBox:GetPropertyChangedSignal('Text'):Connect(UpdateSuggest));
+
+		NeverLose:AddSignal(Window.Signal:Connect(LPH_NO_VIRTUALIZE(function(value)
+			if value then
+				UpdateSuggest();
+			else
+				HideSuggest();
+			end;
+		end)));
 
 		NeverLose:AddSignal(SearchBox:GetPropertyChangedSignal('Text'):Connect(LPH_NO_VIRTUALIZE(function()
 			if not SearchBox.Text:byte() then
@@ -4853,6 +5177,8 @@ function NeverLose:CreateWindow(Config)
 		local TabContentLabel = Instance.new("TextLabel")
 
 		Tab.Idx = TabButton;
+		Tab.Name = Config.Name;
+		Tab.Icon = Config.Icon;
 
 		TabButton.Name = NeverLose.RandomString();
 		TabButton.Parent = LeftScrollingFrame
@@ -4935,7 +5261,7 @@ function NeverLose:CreateWindow(Config)
 		UIListLayout.Padding = UDim.new(0, 5)
 
 		NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-			LeftScroll.CanvasSize = UDim2.fromOffset(0,(UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 1)
+			LeftScroll.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 1)
 		end)))
 
 		RightScroll.Name = NeverLose.RandomString();
@@ -4964,7 +5290,7 @@ function NeverLose:CreateWindow(Config)
 			LeftScroll.Position = UDim2.new(0.5, 0, 0.5, 0)
 		else
 			NeverLose:AddSignal(UIListLayout_2:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-				RightScroll.CanvasSize = UDim2.fromOffset(0,(UIListLayout_2.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout_2)) + 1)
+				RightScroll.CanvasSize = UDim2.fromOffset(0,UIListLayout_2.AbsoluteContentSize.Y + 1)
 			end)))
 		end;
 
@@ -5025,6 +5351,17 @@ function NeverLose:CreateWindow(Config)
 		end);
 
 		table.insert(Window.Tabs,Tab);
+
+		Tab.Select = LPH_NO_VIRTUALIZE(function()
+			for i,v in next , Window.Tabs do
+				if v == Tab then
+					v.SetValue(true);
+					Window.CurrentTab = i;
+				else
+					v.SetValue(false);
+				end;
+			end;
+		end);
 
 		if Window.Tabs[Window.CurrentTab] == Tab then
 			Tab.SetValue(true)
@@ -5156,16 +5493,21 @@ function NeverLose:CreateWindow(Config)
 
 			UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 
-				if (UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) <= 1 then
+				if UIListLayout.AbsoluteContentSize.Y <= 1 then
 					NeverLose.PlayAnimate(SectionFrame , VSlowTween , {
 						Size = UDim2.new(1, -5, 0, 0)
 					})
 				else
 					NeverLose.PlayAnimate(SectionFrame , VSlowTween , {
-						Size = UDim2.new(1, -5, 0, (UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 19.5)
+						Size = UDim2.new(1, -5, 0, UIListLayout.AbsoluteContentSize.Y + 19.5)
 					})
 				end;
 			end));
+
+			NeverLose.SectionMeta[SectionHandler] = {
+				Tab = Tab,
+				Section = tostring(Config.Name)
+			};
 
 			local Section = NeverLose:RegisiterItem(SectionHandler , Tab.Signal);
 
@@ -5408,11 +5750,11 @@ function NeverLose:CreateWindow(Config)
 		NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 			if #ConfigLib.Signals <= 0 then
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
-					Size = UDim2.new(0, 220,0, (UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 0);
+					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y + 0);
 				})
 			else
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
-					Size = UDim2.new(0, 220,0, (UIListLayout.AbsoluteContentSize.Y / NeverLose:GetScaleOf(UIListLayout)) + 5);
+					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y + 5);
 				})
 			end;
 
@@ -6195,7 +6537,7 @@ function NeverLose:CreateWindow(Config)
 
 		UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 			NeverLose.PlayAnimate(Watermark , SlowyTween , {
-				Size = UDim2.new(0, (UIListLayout.AbsoluteContentSize.X / NeverLose:GetScaleOf(UIListLayout)) + 5, 0, 30)
+				Size = UDim2.new(0, UIListLayout.AbsoluteContentSize.X + 5, 0, 30)
 			})
 		end));
 
