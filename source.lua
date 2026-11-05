@@ -4002,9 +4002,10 @@ function NeverLose:CreateWindow(Config)
 	Window.UIScale = WindowUIScale;
 	Window.MobileUIScale = WindowUIScale;
 
-	if not NeverLose.EnabledBlur then
-		WindowFrame.BackgroundTransparency = 0.0255
-	end;
+	local WindowTransparency = (NeverLose.EnabledBlur and 0.4) or 0.0255;
+	local PaneTransparency = (NeverLose.EnabledBlur and 0.055) or 0.6;
+
+	WindowFrame.BackgroundTransparency = WindowTransparency;
 
 	local renderParentWindow = LPH_NO_VIRTUALIZE(function()
 		if Window.__3DRender then
@@ -4037,7 +4038,7 @@ function NeverLose:CreateWindow(Config)
 	Window.SetRender = LPH_NO_VIRTUALIZE(function(self , value)
 		if value then
 			NeverLose.PlayAnimate(WindowFrame , SlowyTween , {
-				BackgroundTransparency = (NeverLose.EnabledBlur and 0.055) or 0.0255,
+				BackgroundTransparency = WindowTransparency,
 				Size = Window.Size
 			})
 
@@ -4082,7 +4083,7 @@ function NeverLose:CreateWindow(Config)
 			})
 
 			NeverLose.PlayAnimate(RightMenuFrame , SlowyTween , {
-				BackgroundTransparency = 0.600
+				BackgroundTransparency = PaneTransparency
 			})
 
 			NeverLose.PlayAnimate(UIStroke , SlowyTween , {
@@ -4234,6 +4235,7 @@ function NeverLose:CreateWindow(Config)
 
 	if NeverLose.EnabledBlur then
 		NeverLose:CreateBlurModule(WindowFrame,Window.Signal);
+		NeverLose:CreateBlurModule(LeftMenuFrame,Window.Signal);
 	end;
 
 	do
@@ -4449,7 +4451,7 @@ function NeverLose:CreateWindow(Config)
 	RightMenuFrame.Name = NeverLose.RandomString();
 	RightMenuFrame.Parent = WindowFrame
 	RightMenuFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 13)
-	RightMenuFrame.BackgroundTransparency = 0.600
+	RightMenuFrame.BackgroundTransparency = PaneTransparency
 	RightMenuFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	RightMenuFrame.BorderSizePixel = 0
 	RightMenuFrame.ClipsDescendants = true
