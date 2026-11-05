@@ -161,10 +161,13 @@ local Mouse: Mouse = LocalPlayer:GetMouse();
 local CurrentCamera: Camera = cloneref(workspace.CurrentCamera);
 local ProtectGui = protect_gui or protectgui or (syn and syn.protect_gui) or function(s) return s; end;
 local GlobalWindow = Instance.new('ScreenGui');
-local ManualTween = TweenInfo.new(0.1);
-local SlowyTween = TweenInfo.new(0.175);
-local FastTween = TweenInfo.new(0.05);
-local VSlowTween = TweenInfo.new(0.5,Enum.EasingStyle.Quint);
+local ManualTween = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+local SlowyTween = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
+local FastTween = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
+local VSlowTween = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
+
+NeverLose.PopTween = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out);
+NeverLose.CloseTween = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In);
 local Encryption = {};
 
 NeverLose.UserProfile = Players:GetUserThumbnailAsync(LocalPlayer.UserId , Enum.ThumbnailType.HeadShot , Enum.ThumbnailSize.Size150x150)
@@ -920,7 +923,7 @@ NeverLose.Drag = LPH_NO_VIRTUALIZE(function(InputFrame: Frame, MoveFrame: Frame,
 	local dragToggle: boolean = false;
 	local dragStart: Vector3 = nil;
 	local startPos: UDim2 = nil;
-	local Tween = TweenInfo.new(Speed);
+	local Tween = TweenInfo.new(Speed, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
 
 	local updateInput = function(input)
 		local delta = input.Position - dragStart;
@@ -1115,6 +1118,25 @@ end);
 
 local EmptyFunction = function() end;
 
+function NeverLose:GetPopupScale()
+	if NeverLose.IsMobile and NeverLose.MobileScale then
+		return NeverLose.MobileScale;
+	end;
+
+	return 1;
+end;
+
+function NeverLose:ApplyPopupScale(Popup)
+	local Scale = NeverLose:GetPopupScale();
+	local PopupUIScale = Instance.new("UIScale");
+
+	PopupUIScale.Name = NeverLose.RandomString();
+	PopupUIScale.Scale = Scale * 0.94;
+	PopupUIScale.Parent = Popup;
+
+	return Scale, PopupUIScale;
+end;
+
 function NeverLose:RollingEffect(parent)
 	local UIGradient = Instance.new("UIGradient")
 
@@ -1250,6 +1272,8 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 	OptionHandler.Size = UDim2.new(0, 220, 0, 75)
 	OptionHandler.ZIndex = Zindex + 9
 
+	local PopupScale, PopupUIScale = NeverLose:ApplyPopupScale(OptionHandler);
+
 	UICorner.CornerRadius = UDim.new(0, 10)
 	UICorner.Parent = OptionHandler
 
@@ -1286,13 +1310,13 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 
 	local FollowingThread;
 	local SetPosition = LPH_NO_VIRTUALIZE(function()
-		if NeverLose:MoreThanHalfY(Frame.AbsolutePosition.Y + 65) then
+		if NeverLose:MoreThanHalfY(Frame.AbsolutePosition.Y + (65 * PopupScale)) then
 			OptionHandler.AnchorPoint = Vector2.new(0,1)
 		else
 			OptionHandler.AnchorPoint = Vector2.new(0,0)
 		end;
 
-		OptionHandler.Position = UDim2.fromOffset(Frame.AbsolutePosition.X + 18 , Frame.AbsolutePosition.Y + 65);
+		OptionHandler.Position = UDim2.fromOffset(Frame.AbsolutePosition.X + (18 * PopupScale) , Frame.AbsolutePosition.Y + (65 * PopupScale));
 	end);
 
 	Window.SetRender = LPH_NO_VIRTUALIZE(function(value)
@@ -1303,6 +1327,12 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 
 		if value then
 			SetPosition();
+
+			PopupUIScale.Scale = PopupScale * 0.94;
+
+			NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
+				Scale = PopupScale
+			})
 
 			NeverLose.PlayAnimate(OptionHandler , SlowyTween , {
 				BackgroundTransparency = 0.035
@@ -1326,6 +1356,10 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 				end
 			end)
 		else
+			NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
+				Scale = PopupScale * 0.96
+			})
+
 			NeverLose.PlayAnimate(OptionHandler , SlowyTween , {
 				BackgroundTransparency = 1
 			})
@@ -1384,6 +1418,8 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 	ColorPickerHandler.Position = UDim2.new(255, 0, 255, 20)
 	ColorPickerHandler.Size = UDim2.new(0, 200, 0, 240)
 	ColorPickerHandler.ZIndex = ZIndex + 125
+
+	local PopupScale, PopupUIScale = NeverLose:ApplyPopupScale(ColorPickerHandler);
 
 	NeverLose:AddSignal(ColorPickerHandler:GetPropertyChangedSignal('BackgroundTransparency'):Connect(LPH_NO_VIRTUALIZE(function()
 		if ColorPickerHandler.BackgroundTransparency > 0.9 then
@@ -1493,7 +1529,17 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 
 	ColorPickerLib.SetRender = LPH_NO_VIRTUALIZE(function(value)
 		if value then
-			ColorPickerHandler.Position = UDim2.new(0,HandleFrame.AbsolutePosition.X + 20 , 0 ,HandleFrame.AbsolutePosition.Y + 75);
+			local View = NeverLose.ScreenGui.AbsoluteSize;
+			local PickerX = math.clamp(HandleFrame.AbsolutePosition.X + (20 * PopupScale), 0, math.max(View.X - (200 * PopupScale), 0));
+			local PickerY = math.clamp(HandleFrame.AbsolutePosition.Y + (75 * PopupScale), 0, math.max(View.Y - (240 * PopupScale), 0));
+
+			ColorPickerHandler.Position = UDim2.fromOffset(PickerX, PickerY);
+
+			PopupUIScale.Scale = PopupScale * 0.94;
+
+			NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
+				Scale = PopupScale
+			})
 
 			NeverLose.PlayAnimate(ColorPickerHandler,SlowyTween , {
 				BackgroundTransparency = 0.035
@@ -1527,6 +1573,10 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 
 			Shadow:Render(true)
 		else
+			NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
+				Scale = PopupScale * 0.96
+			})
+
 			NeverLose.PlayAnimate(ColorPickerHandler,SlowyTween , {
 				BackgroundTransparency = 1
 			})
@@ -2812,6 +2862,8 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 			DropdownHandler.Position = UDim2.new(255,255,255,255)
 			DropdownHandler.Size = UDim2.new(0, 125, 0, 50)
 			DropdownHandler.ZIndex = ZINdex + 125
+
+			local PopupScale, PopupUIScale = NeverLose:ApplyPopupScale(DropdownHandler);
 			DropdownLib.BlockRoot = DropdownHandler;
 
 			NeverLose:AddSignal(DropdownHandler:GetPropertyChangedSignal('BackgroundTransparency'):Connect(function()
@@ -2858,18 +2910,22 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 			NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 				DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y)
 				NeverLose.PlayAnimate(DropdownHandler , SlowyTween , {
-					Size = UDim2.new(0, (Dropdown.AbsoluteSize.X + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
+					Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
 				})
 			end)));
 
 			local SetPosition = LPH_NO_VIRTUALIZE(function()
-				if NeverLose:MoreThanHalfY(Dropdown.AbsolutePosition.Y + 85) then
+				if NeverLose:MoreThanHalfY(Dropdown.AbsolutePosition.Y + (85 * PopupScale)) then
 					DropdownHandler.AnchorPoint = Vector2.new(0.5,1)
 				else
 					DropdownHandler.AnchorPoint = Vector2.new(0.5,0)
 				end;
 
-				DropdownHandler.Position = UDim2.fromOffset(Dropdown.AbsolutePosition.X + (DropdownHandler.AbsoluteSize.X / 2), Dropdown.AbsolutePosition.Y + 85);
+				local HalfWidth = (((Dropdown.AbsoluteSize.X / PopupScale) + 5 + DropdownLib.ExtentSize) * PopupScale) / 2;
+				local View = NeverLose.ScreenGui.AbsoluteSize;
+				local CenterX = math.clamp(Dropdown.AbsolutePosition.X + HalfWidth, HalfWidth, math.max(View.X - HalfWidth, HalfWidth));
+
+				DropdownHandler.Position = UDim2.fromOffset(CenterX, Dropdown.AbsolutePosition.Y + (85 * PopupScale));
 
 			end);
 
@@ -2879,7 +2935,13 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 				if value then
 					Shadow:Render(true);
 
-					DropdownHandler.Size = UDim2.new(0, (Dropdown.AbsoluteSize.X + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
+					PopupUIScale.Scale = PopupScale * 0.94;
+
+					NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
+						Scale = PopupScale
+					})
+
+					DropdownHandler.Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
 
 					SetPosition();
 
@@ -2891,6 +2953,9 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 						DropdownLib:Generate();
 					end;
 				else
+					NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
+						Scale = PopupScale * 0.96
+					})
 
 					NeverLose.PlayAnimate(DropdownHandler , SlowyTween , {
 						BackgroundTransparency = 1
@@ -3019,7 +3084,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 								Position = UDim2.new(0, 30, 0, 4)
 							})
 
-							NeverLose.PlayAnimate(Icon , vs , {
+							NeverLose.PlayAnimate(Icon , SlowyTween , {
 								TextTransparency = 0.250
 							})
 
@@ -3249,6 +3314,9 @@ function NeverLose:CreateToolTips(Container: Frame , Name: string , Content: str
 	Tooltips.Size = UDim2.new(0,0,0,0)
 	Tooltips.ZIndex = 130
 
+	local PopupScale, TooltipUIScale = NeverLose:ApplyPopupScale(Tooltips);
+	TooltipUIScale.Scale = PopupScale;
+
 	UICorner.CornerRadius = UDim.new(0, 10)
 	UICorner.Parent = Tooltips
 
@@ -3319,7 +3387,7 @@ function NeverLose:CreateToolTips(Container: Frame , Name: string , Content: str
 
 	ToolTip.SetRender = LPH_NO_VIRTUALIZE(function(value)
 		if value then
-			Tooltips.Position = UDim2.fromOffset(Container.AbsolutePosition.X + Container.AbsoluteSize.X , Container.AbsolutePosition.Y + (Container.AbsoluteSize.Y + 25));
+			Tooltips.Position = UDim2.fromOffset(Container.AbsolutePosition.X + Container.AbsoluteSize.X , Container.AbsolutePosition.Y + (Container.AbsoluteSize.Y + (25 * PopupScale)));
 
 			NeverLose.PlayAnimate(Tooltips , SlowyTween , {
 				BackgroundTransparency = 0.075
@@ -3920,15 +3988,16 @@ function NeverLose:CreateWindow(Config)
 	WindowFrame.Size = Window.Size
 	WindowFrame.Active = true;
 
-	if NeverLose.IsMobile then
-		local MobileUIScale = Instance.new("UIScale");
+	local WindowUIScale = Instance.new("UIScale");
 
-		MobileUIScale.Name = NeverLose.RandomString();
-		MobileUIScale.Scale = NeverLose.MobileScale or 0.7;
-		MobileUIScale.Parent = WindowFrame;
+	Window.BaseScale = (NeverLose.IsMobile and NeverLose.MobileScale) or 1;
 
-		Window.MobileUIScale = MobileUIScale;
-	end;
+	WindowUIScale.Name = NeverLose.RandomString();
+	WindowUIScale.Scale = Window.BaseScale * 0.94;
+	WindowUIScale.Parent = WindowFrame;
+
+	Window.UIScale = WindowUIScale;
+	Window.MobileUIScale = WindowUIScale;
 
 	if not NeverLose.EnabledBlur then
 		WindowFrame.BackgroundTransparency = 0.0255
@@ -3967,6 +4036,10 @@ function NeverLose:CreateWindow(Config)
 			NeverLose.PlayAnimate(WindowFrame , SlowyTween , {
 				BackgroundTransparency = (NeverLose.EnabledBlur and 0.055) or 0.0255,
 				Size = Window.Size
+			})
+
+			NeverLose.PlayAnimate(WindowUIScale , NeverLose.PopTween , {
+				Scale = Window.BaseScale
 			})
 
 			NeverLose.PlayAnimate(LogoImage , SlowyTween , {
@@ -4054,7 +4127,11 @@ function NeverLose:CreateWindow(Config)
 
 			NeverLose.PlayAnimate(WindowFrame , SlowyTween , {
 				BackgroundTransparency = 1,
-				Size = Window.Size + UDim2.fromOffset(-15,-15)
+				Size = Window.Size
+			})
+
+			NeverLose.PlayAnimate(WindowUIScale , NeverLose.CloseTween , {
+				Scale = Window.BaseScale * 0.94
 			})
 
 			NeverLose.PlayAnimate(LogoImage , SlowyTween , {
@@ -4881,9 +4958,19 @@ function NeverLose:CreateWindow(Config)
 		end)));
 
 		Tab.SetValue = LPH_NO_VIRTUALIZE(function(value)
+			local WasActive = Tab.Signal:GetValue();
+
 			Tab.Signal:SetValue(value);
 
 			if value then
+				if not WasActive then
+					TabFrame.Position = UDim2.new(0.5, 0, 0.5, 14);
+
+					NeverLose.PlayAnimate(TabFrame , VSlowTween , {
+						Position = UDim2.new(0.5, 0, 0.5, 0)
+					});
+				end;
+
 				NeverLose.PlayAnimate(TabButton , SlowyTween , {
 					BackgroundTransparency = 0.500
 				})
@@ -5101,6 +5188,8 @@ function NeverLose:CreateWindow(Config)
 		};
 
 		local ConfigMenu = Instance.new("Frame")
+		local PopupScale, ConfigMenuUIScale = NeverLose:ApplyPopupScale(ConfigMenu);
+		ConfigMenuUIScale.Scale = PopupScale;
 		local UICorner = Instance.new("UICorner")
 		local UIListLayout = Instance.new("UIListLayout")
 		local UIStroke = Instance.new("UIStroke")
@@ -5122,11 +5211,11 @@ function NeverLose:CreateWindow(Config)
 
 		ConfigLib.SetRender = LPH_NO_VIRTUALIZE(function(value)
 			if value then
-				ConfigMenu.Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + 110 , ConfigFrame.AbsolutePosition.Y + 96)
+				ConfigMenu.Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + (110 * PopupScale) , ConfigFrame.AbsolutePosition.Y + (96 * PopupScale))
 
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
 					BackgroundTransparency = 0.035,
-					Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + 110 , ConfigFrame.AbsolutePosition.Y + 95)
+					Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + (110 * PopupScale) , ConfigFrame.AbsolutePosition.Y + (95 * PopupScale))
 				})
 
 				NeverLose.PlayAnimate(UIStroke , SlowyTween , {
@@ -5165,7 +5254,7 @@ function NeverLose:CreateWindow(Config)
 
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
 					BackgroundTransparency = 1,
-					Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + 110 , ConfigFrame.AbsolutePosition.Y + 96)
+					Position = UDim2.fromOffset(ConfigFrame.AbsolutePosition.X + (110 * PopupScale) , ConfigFrame.AbsolutePosition.Y + (96 * PopupScale))
 				})
 
 				NeverLose.PlayAnimate(UIStroke_2 , SlowyTween , {
