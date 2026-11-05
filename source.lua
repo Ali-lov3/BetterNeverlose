@@ -988,7 +988,7 @@ NeverLose.ProcessParams = LPH_NO_VIRTUALIZE(function(self , Params , Fixed)
 	return k;
 end);
 
-NeverLose.EnabledBlur = true;
+NeverLose.EnabledBlur = false;
 NeverLose.BlurModuleParent = workspace.CurrentCamera;
 
 NeverLose.GetCalculatePosition = LPH_NO_VIRTUALIZE(function(planePos, planeNormal, rayOrigin, rayDirection)
@@ -3917,11 +3917,12 @@ function NeverLose:CreateWindow(Config)
 			viewport = CurrentCamera.ViewportSize;
 		end;
 
-		local baseX = Config.Size.X.Offset;
-		local baseY = Config.Size.Y.Offset;
-		local fit = math.min((viewport.X - 24) / baseX, (viewport.Y - 24) / baseY);
+		local MobileScale = math.clamp(math.min((viewport.Y - 70) / 330, (viewport.X - 60) / 540, 0.9), 0.5, 0.9);
+		local MobileWidth = math.clamp(math.floor((viewport.X - 60) / MobileScale), 540, 780);
+		local MobileHeight = math.min(Config.Size.Y.Offset, math.max(330, math.floor((viewport.Y - 70) / MobileScale)));
 
-		NeverLose.MobileScale = math.clamp(math.min(fit, 0.72), 0.45, 0.72);
+		Config.Size = UDim2.fromOffset(MobileWidth, MobileHeight);
+		NeverLose.MobileScale = MobileScale;
 	end;
 
 	local Window = {
@@ -4002,10 +4003,9 @@ function NeverLose:CreateWindow(Config)
 	Window.UIScale = WindowUIScale;
 	Window.MobileUIScale = WindowUIScale;
 
-	local WindowTransparency = (NeverLose.EnabledBlur and 0.4) or 0.0255;
-	local PaneTransparency = (NeverLose.EnabledBlur and 0.055) or 0.6;
-
-	WindowFrame.BackgroundTransparency = WindowTransparency;
+	if not NeverLose.EnabledBlur then
+		WindowFrame.BackgroundTransparency = 0.0255
+	end;
 
 	local renderParentWindow = LPH_NO_VIRTUALIZE(function()
 		if Window.__3DRender then
@@ -4038,7 +4038,7 @@ function NeverLose:CreateWindow(Config)
 	Window.SetRender = LPH_NO_VIRTUALIZE(function(self , value)
 		if value then
 			NeverLose.PlayAnimate(WindowFrame , SlowyTween , {
-				BackgroundTransparency = WindowTransparency,
+				BackgroundTransparency = (NeverLose.EnabledBlur and 0.055) or 0.0255,
 				Size = Window.Size
 			})
 
@@ -4083,7 +4083,7 @@ function NeverLose:CreateWindow(Config)
 			})
 
 			NeverLose.PlayAnimate(RightMenuFrame , SlowyTween , {
-				BackgroundTransparency = PaneTransparency
+				BackgroundTransparency = 0.600
 			})
 
 			NeverLose.PlayAnimate(UIStroke , SlowyTween , {
@@ -4235,7 +4235,6 @@ function NeverLose:CreateWindow(Config)
 
 	if NeverLose.EnabledBlur then
 		NeverLose:CreateBlurModule(WindowFrame,Window.Signal);
-		NeverLose:CreateBlurModule(LeftMenuFrame,Window.Signal);
 	end;
 
 	do
@@ -4451,7 +4450,7 @@ function NeverLose:CreateWindow(Config)
 	RightMenuFrame.Name = NeverLose.RandomString();
 	RightMenuFrame.Parent = WindowFrame
 	RightMenuFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 13)
-	RightMenuFrame.BackgroundTransparency = PaneTransparency
+	RightMenuFrame.BackgroundTransparency = 0.600
 	RightMenuFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
 	RightMenuFrame.BorderSizePixel = 0
 	RightMenuFrame.ClipsDescendants = true
@@ -5226,6 +5225,22 @@ function NeverLose:CreateWindow(Config)
 		TabContentLabel.TextSize = 12.000
 		TabContentLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+		local TabBar = Instance.new("Frame")
+		local TabBarCorner = Instance.new("UICorner")
+
+		TabBar.Name = NeverLose.RandomString();
+		TabBar.Parent = TabButton
+		TabBar.AnchorPoint = Vector2.new(0, 0.5)
+		TabBar.BackgroundColor3 = NeverLose.AccentColor
+		TabBar.BackgroundTransparency = 1
+		TabBar.BorderSizePixel = 0
+		TabBar.Position = UDim2.new(0, 1, 0.5, 0)
+		TabBar.Size = UDim2.new(0, 3, 0, 0)
+		TabBar.ZIndex = 9
+
+		TabBarCorner.CornerRadius = UDim.new(1, 0)
+		TabBarCorner.Parent = TabBar
+
 		local TabFrame = Instance.new("Frame")
 		local LeftScroll = Instance.new("ScrollingFrame")
 		local UIListLayout = Instance.new("UIListLayout")
@@ -5333,6 +5348,15 @@ function NeverLose:CreateWindow(Config)
 					TextColor3 = NeverLose.AccentColor
 				})
 
+				NeverLose.PlayAnimate(TabButton , SlowyTween , {
+					BackgroundColor3 = Color3.fromRGB(41, 45, 49):Lerp(NeverLose.AccentColor , 0.2)
+				})
+
+				NeverLose.PlayAnimate(TabBar , SlowyTween , {
+					BackgroundTransparency = 0,
+					Size = UDim2.new(0, 3, 0, 16)
+				})
+
 				NeverLose.PlayAnimate(TabContentLabel , SlowyTween , {
 					TextTransparency = 0
 				})
@@ -5344,6 +5368,15 @@ function NeverLose:CreateWindow(Config)
 				NeverLose.PlayAnimate(TabIcon , SlowyTween , {
 					TextTransparency = 0.5,
 					TextColor3 = Color3.fromRGB(252, 252, 252)
+				})
+
+				NeverLose.PlayAnimate(TabButton , SlowyTween , {
+					BackgroundColor3 = Color3.fromRGB(41, 45, 49)
+				})
+
+				NeverLose.PlayAnimate(TabBar , SlowyTween , {
+					BackgroundTransparency = 1,
+					Size = UDim2.new(0, 3, 0, 0)
 				})
 
 				NeverLose.PlayAnimate(TabContentLabel , SlowyTween , {
