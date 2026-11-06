@@ -45,6 +45,13 @@ local Legit = window:AddTab({
 	Name = "Legit"
 })
 
+window:AddTabLabel('VISUALS')
+
+local Visuals = window:AddTab({
+	Icon = 'cube-vertexes',
+	Name = "Visuals"
+})
+
 local RageMain = Rage:AddSubTab({
 	Name = "Main"
 })
@@ -59,6 +66,10 @@ local LegitAim = Legit:AddSubTab({
 
 local LegitTrigger = Legit:AddSubTab({
 	Name = "Triggerbot"
+})
+
+local VisualsEsp = Visuals:AddSubTab({
+	Name = "ESP"
 })
 
 local Raging = RageMain:AddSection({
@@ -90,6 +101,10 @@ local LegitTrig = LegitTrigger:AddSection({
 	Position = 'left'
 })
 
+local EspManager = VisualsEsp:AddESPManager({
+	FlagPrefix = "esp_",
+})
+
 Raging:AddLabel('Ts so skbidi\nfr noi cap',true)
 
 local EnabledRage = Raging:AddLabel('Enabled')
@@ -112,6 +127,12 @@ SlientAim:AddToggle({
 	Default = false,
 	Callback = print,
 	Flag = "SLIENTAIM",
+})
+
+SlientAim:AddColorPicker({
+	Default = Color3.fromRGB(255, 70, 70),
+	Callback = print,
+	Flag = "silentaim_color",
 })
 
 local opt = SlientAim:AddOption();
@@ -146,6 +167,12 @@ Raging:AddLabel('Field of View'):AddSlider({
 	Size = 100,
 	Callback = print,
 	Flag = "fov",
+})
+
+Raging:AddLabel('FOV Circle Color'):AddColorPicker({
+	Default = Color3.fromRGB(255, 255, 255),
+	Callback = print,
+	Flag = "fov_color",
 })
 
 Selection:AddLabel("Target"):AddDropdown({
@@ -289,6 +316,12 @@ qpa:AddToggle({
 	Callback = print
 })
 
+qpa:AddColorPicker({
+	Default = Color3.fromRGB(80, 160, 255),
+	Callback = print,
+	Flag = "qpa_color",
+})
+
 qpa:AddOption():AddLabel('Something tung tung')
 
 Other:AddLabel('Double Tap'):AddToggle({
@@ -356,6 +389,12 @@ LegitAssist:AddLabel('Field of View'):AddSlider({
 	Size = 100,
 	Flag = "legit_fov",
 	Callback = print
+})
+
+LegitAssist:AddLabel('FOV Color'):AddColorPicker({
+	Default = Color3.fromRGB(255, 255, 255),
+	Callback = print,
+	Flag = "legit_fov_color",
 })
 
 LegitTrig:AddLabel('Enabled'):AddToggle({
