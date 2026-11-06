@@ -163,7 +163,7 @@ local CurrentCamera: Camera = cloneref(workspace.CurrentCamera);
 local ProtectGui = protect_gui or protectgui or (syn and syn.protect_gui) or function(s) return s; end;
 local GlobalWindow = Instance.new('ScreenGui');
 local ManualTween = TweenInfo.new(0.14, Enum.EasingStyle.Quart, Enum.EasingDirection.Out);
-local SlowyTween = TweenInfo.new(0.28, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out);
+local SlowyTween = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
 local FastTween = TweenInfo.new(0.1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out);
 local VSlowTween = TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out);
 
@@ -1855,6 +1855,14 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 
 		UICorner_2.CornerRadius = UDim.new(1, 0)
 		UICorner_2.Parent = Circle
+
+		local ToggleGradient = Instance.new("UIGradient")
+		ToggleGradient.Rotation = 90
+		ToggleGradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 190, 255))
+		}
+		ToggleGradient.Parent = Toggle
 
 		local ToggleLib = {
 			Root = Toggle
@@ -4370,8 +4378,8 @@ function NeverLose:CreateWindow(Config)
 		local WindowStroke = Instance.new("UIStroke")
 		WindowStroke.Name = NeverLose.RandomString();
 		WindowStroke.Color = Color3.fromRGB(30, 52, 104)
-		WindowStroke.Thickness = 1
-		WindowStroke.Transparency = 0.1
+		WindowStroke.Thickness = 1.5
+		WindowStroke.Transparency = 0.15
 		WindowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		WindowStroke.Parent = WindowFrame
 
@@ -4383,6 +4391,16 @@ function NeverLose:CreateWindow(Config)
 			ColorSequenceKeypoint.new(1, Color3.fromRGB(196, 214, 255))
 		}
 		WindowGradient.Parent = WindowFrame
+
+		local StrokeGradient = Instance.new("UIGradient")
+		StrokeGradient.Name = NeverLose.RandomString();
+		StrokeGradient.Rotation = 35
+		StrokeGradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 130, 255)),
+			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 34, 78)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 130, 255))
+		}
+		StrokeGradient.Parent = WindowStroke
 	end
 
 	LeftMenuFrame.Name = NeverLose.RandomString();
@@ -5689,11 +5707,11 @@ function NeverLose:CreateWindow(Config)
 			SectionLabel.Position = UDim2.new(0.5, 0, 0, 0)
 			SectionLabel.Size = UDim2.new(1, -35, 0, 15)
 			SectionLabel.ZIndex = 9
-			SectionLabel.Font = Enum.Font.GothamMedium
+			SectionLabel.Font = Enum.Font.GothamBold
 			SectionLabel.Text = Config.Name
-			SectionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			SectionLabel.TextColor3 = Color3.fromRGB(150, 190, 255)
 			SectionLabel.TextSize = 11.000
-			SectionLabel.TextTransparency = 0.500
+			SectionLabel.TextTransparency = 0.150
 			SectionLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 			SectionHandler.Name = NeverLose.RandomString();
@@ -5708,9 +5726,17 @@ function NeverLose:CreateWindow(Config)
 			SectionHandler.Size = UDim2.new(1, -10, 1, -21)
 			SectionHandler.ZIndex = 9
 
-			UIStroke.Transparency = 0.650
-			UIStroke.Color = Color3.fromRGB(24, 40, 78)
+			UIStroke.Transparency = 0.45
+			UIStroke.Color = Color3.fromRGB(24, 44, 92)
 			UIStroke.Parent = SectionHandler
+
+			local SectionGradient = Instance.new("UIGradient")
+			SectionGradient.Rotation = 90
+			SectionGradient.Color = ColorSequence.new{
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(235, 242, 255)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(170, 185, 225))
+			}
+			SectionGradient.Parent = SectionHandler
 
 			UICorner.CornerRadius = UDim.new(0, 12)
 			UICorner.Parent = SectionHandler
