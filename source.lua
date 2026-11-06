@@ -1289,7 +1289,7 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 
 	NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 		NeverLose.PlayAnimate(OptionHandler , SlowyTween , {
-			Size = UDim2.new(0, 220, 0, UIListLayout.AbsoluteContentSize.Y - 1)
+			Size = UDim2.new(0, 220, 0, UIListLayout.AbsoluteContentSize.Y / math.max(PopupUIScale.Scale , 0.01) - 1)
 		})
 	end)));
 
@@ -2953,9 +2953,9 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 			UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 			NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-				DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y)
+				DropdownScrollFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y / math.max(PopupUIScale.Scale , 0.01))
 				NeverLose.PlayAnimate(DropdownHandler , SlowyTween , {
-					Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
+					Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y / math.max(PopupUIScale.Scale , 0.01) + 5, 250));
 				})
 			end)));
 
@@ -2986,7 +2986,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 						Scale = PopupScale
 					})
 
-					DropdownHandler.Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y + 5, 250));
+					DropdownHandler.Size = UDim2.new(0, ((Dropdown.AbsoluteSize.X / PopupScale) + 5) + DropdownLib.ExtentSize, 0, math.min(UIListLayout.AbsoluteContentSize.Y / math.max(PopupUIScale.Scale , 0.01) + 5, 250));
 
 					SetPosition();
 
@@ -5630,7 +5630,7 @@ function NeverLose:CreateWindow(Config)
 					})
 				else
 					NeverLose.PlayAnimate(SectionFrame , VSlowTween , {
-						Size = UDim2.new(1, -5, 0, UIListLayout.AbsoluteContentSize.Y + 19.5)
+						Size = UDim2.new(1, -5, 0, UIListLayout.AbsoluteContentSize.Y / math.max(Window.UIScale.Scale , 0.01) + 19.5)
 					})
 				end;
 			end));
@@ -5853,6 +5853,7 @@ function NeverLose:CreateWindow(Config)
 			Page.Parent = TabFrame
 			Page.BackgroundTransparency = 1.000
 			Page.BorderSizePixel = 0
+			Page.ClipsDescendants = true
 			Page.Position = UDim2.new(0, 0, 0, 36)
 			Page.Size = UDim2.new(1, 0, 1, -38)
 			Page.Visible = false
@@ -6111,11 +6112,11 @@ function NeverLose:CreateWindow(Config)
 		NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
 			if #ConfigLib.Signals <= 0 then
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
-					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y + 0);
+					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y / math.max(ConfigMenuUIScale.Scale , 0.01) + 0);
 				})
 			else
 				NeverLose.PlayAnimate(ConfigMenu , SlowyTween , {
-					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y + 5);
+					Size = UDim2.new(0, 220,0, UIListLayout.AbsoluteContentSize.Y / math.max(ConfigMenuUIScale.Scale , 0.01) + 5);
 				})
 			end;
 
