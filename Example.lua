@@ -9,7 +9,13 @@ local window = NeverLose:CreateWindow({
 	Content = "Counter-Strike 2",
 	Size = NeverLose.Scales.Default,
 	ConfigFolder = "NeverLoseConfigs",
-	Enable3DRenderer = false
+	Enable3DRenderer = false,
+	Keybind = "Insert"
+});
+
+window:SetAccount({
+	Username = "Player",
+	Expires = "Never"
 });
 
 local Watermark = window:Watermark();
@@ -50,6 +56,13 @@ window:AddTabLabel('VISUALS')
 local Visuals = window:AddTab({
 	Icon = 'cube-vertexes',
 	Name = "Visuals"
+})
+
+window:AddTabLabel('MISC')
+
+local Misc = window:AddTab({
+	Icon = 'chart-four-vertical-bars',
+	Name = "Misc"
 })
 
 local RageMain = Rage:AddSubTab({
@@ -101,6 +114,21 @@ local LegitTrig = LegitTrigger:AddSection({
 	Position = 'left'
 })
 
+local MiscElements = Misc:AddSection({
+	Name = "ELEMENTS",
+	Position = 'left'
+})
+
+local MiscInputs = Misc:AddSection({
+	Name = "INPUTS",
+	Position = 'right'
+})
+
+local MiscActions = Misc:AddSection({
+	Name = "ACTIONS",
+	Position = 'right'
+})
+
 local EspManager = VisualsEsp:AddESPManager({
 	FlagPrefix = "esp_",
 })
@@ -115,6 +143,13 @@ EnabledRage:AddToggle({
 	Default = false,
 	Callback = print;
 	Flag = "Ragebot",
+})
+
+EnabledRage:AddKeybind({
+	Default = "R",
+	Blacklist = {"Escape"},
+	Callback = print,
+	Flag = "ragebot_key",
 })
 
 EnabledRage:AddOption():AddLabel("Force Shoot"):AddToggle({
@@ -146,6 +181,12 @@ opt:AddLabel('Perfect Silent-Aim'):AddToggle({
 	Default = false,
 	Callback = print,
 	Flag = "HideShot2",
+})
+
+opt:AddLabel('Silent Aim Key'):AddKeybind({
+	Default = "Q",
+	Callback = print,
+	Flag = "silentaim_key",
 })
 
 Raging:AddLabel('Automatic Fire'):AddToggle({
@@ -322,12 +363,35 @@ qpa:AddColorPicker({
 	Flag = "qpa_color",
 })
 
+qpa:AddKeybind({
+	Default = "V",
+	Callback = print,
+	Flag = "qpa_key",
+})
+
 qpa:AddOption():AddLabel('Something tung tung')
 
-Other:AddLabel('Double Tap'):AddToggle({
+local dt = Other:AddLabel('Double Tap')
+
+dt:AddToggle({
 	Default = false,
 	Callback = print,
 	Flag = "dt",
+})
+
+dt:AddKeybind({
+	Default = "X",
+	Callback = print,
+	Flag = "dt_key",
+})
+
+Other:AddButton({
+	Icon = 'crosshairs',
+	Name = 'Reset Ragebot',
+	ToolTip = 'Resets the ragebot flags to their defaults',
+	Callback = function()
+		Logging.new("crosshairs",'Ragebot settings reset',5)
+	end,
 })
 
 local aa_enable = AntiAim:AddLabel('Enabled');
@@ -366,6 +430,15 @@ AntiAim:AddLabel('Mouse Override'):AddToggle({
 	Callback = print
 })
 
+AntiAim:AddLabel('Yaw Offset'):AddTextInput({
+	Default = "0",
+	Placeholder = "Degrees",
+	Numeric = true,
+	Size = 80,
+	Flag = "yaw_offset",
+	Callback = print
+})
+
 LegitAssist:AddLabel('Enabled'):AddToggle({
 	Default = false,
 	Flag = "legit_assist",
@@ -397,6 +470,12 @@ LegitAssist:AddLabel('FOV Color'):AddColorPicker({
 	Flag = "legit_fov_color",
 })
 
+LegitAssist:AddLabel('Aim Key'):AddKeybind({
+	Default = "M2B",
+	Callback = print,
+	Flag = "legit_aim_key",
+})
+
 LegitTrig:AddLabel('Enabled'):AddToggle({
 	Default = false,
 	Flag = "legit_trigger",
@@ -410,6 +489,248 @@ LegitTrig:AddLabel('Delay'):AddSlider({
 	Size = 100,
 	Flag = "legit_trigger_delay",
 	Callback = print
+})
+
+LegitTrig:AddLabel('Trigger Key'):AddKeybind({
+	Default = "T",
+	Callback = print,
+	Flag = "legit_trigger_key",
+})
+
+local MiscMaster = MiscElements:AddLabel('Master Switch')
+
+MiscMaster:ToolTip("Combines a toggle, a color picker and a keybind\nin a single row")
+
+MiscMaster:AddToggle({
+	Default = true,
+	Callback = print,
+	Flag = "misc_master",
+})
+
+MiscMaster:AddColorPicker({
+	Default = Color3.fromRGB(45, 130, 255),
+	Callback = print,
+	Flag = "misc_master_color",
+})
+
+MiscMaster:AddKeybind({
+	Default = "F",
+	Blacklist = {"Escape", "Backspace"},
+	Callback = print,
+	Flag = "misc_master_key",
+})
+
+local MiscOptions = MiscMaster:AddOption()
+
+MiscOptions:AddLabel('Show Indicator'):AddToggle({
+	Default = true,
+	Callback = print,
+	Flag = "misc_indicator",
+})
+
+MiscOptions:AddLabel('Indicator Color'):AddColorPicker({
+	Default = Color3.fromRGB(255, 120, 60),
+	Callback = print,
+	Flag = "misc_indicator_color",
+})
+
+MiscOptions:AddLabel('Opacity'):AddSlider({
+	Min = 0,
+	Max = 100,
+	Default = 80,
+	Type = "%",
+	Size = 90,
+	Callback = print,
+	Flag = "misc_opacity",
+})
+
+MiscOptions:AddLabel('Mode'):AddDropdown({
+	Default = 'Normal',
+	Values = {'Normal','Soft','Aggressive'},
+	Callback = print,
+	Flag = "misc_mode",
+})
+
+MiscOptions:AddLabel('Label'):AddTextInput({
+	Default = "Custom",
+	Placeholder = "Type here",
+	Size = 90,
+	Callback = print,
+	Flag = "misc_option_text",
+})
+
+MiscOptions:AddLabel('Hold Key'):AddKeybind({
+	Default = "G",
+	Callback = print,
+	Flag = "misc_hold_key",
+})
+
+MiscElements:AddLabel('Slider With Labels'):AddSlider({
+	Min = 0,
+	Max = 10,
+	Default = 5,
+	Rounding = 0,
+	Nums = {
+		[0] = 'Off',
+		[10] = 'Max',
+	},
+	Size = 110,
+	Callback = print,
+	Flag = "misc_slider_labels",
+})
+
+MiscElements:AddLabel('Decimal Slider'):AddSlider({
+	Min = 0,
+	Max = 5,
+	Default = 1.5,
+	Rounding = 2,
+	Type = "s",
+	Size = 110,
+	Callback = print,
+	Flag = "misc_slider_decimal",
+})
+
+MiscElements:AddLabel('Single Select'):AddDropdown({
+	Default = 'Option A',
+	Values = {'Option A','Option B','Option C','Option D'},
+	Callback = print,
+	Flag = "misc_single",
+})
+
+MiscElements:AddLabel('Multi Select'):AddDropdown({
+	Default = {'One','Three'},
+	Multi = true,
+	Values = {'One','Two','Three','Four','Five','Six'},
+	Callback = print,
+	Flag = "misc_multi",
+})
+
+MiscElements:AddLabel('Auto Updating List'):AddDropdown({
+	Default = 'Players',
+	Values = {'Players','Teams','Items'},
+	AutoUpdate = true,
+	Size = 110,
+	Callback = print,
+	Flag = "misc_auto_update",
+})
+
+local HiddenRow = MiscElements:AddLabel('Hidden Row')
+
+HiddenRow:AddToggle({
+	Default = false,
+	Callback = print,
+	Flag = "misc_hidden_toggle",
+})
+
+MiscElements:AddLabel('Show Hidden Row'):AddToggle({
+	Default = true,
+	Callback = function(v)
+		HiddenRow:SetVisible(v)
+	end,
+	Flag = "misc_hidden_visible",
+})
+
+local RenamedRow = MiscElements:AddLabel('Click To Rename')
+
+MiscElements:AddLabel('Rename Row'):AddToggle({
+	Default = false,
+	Callback = function(v)
+		RenamedRow:SetText(v and 'Renamed Row' or 'Click To Rename')
+	end,
+	Flag = "misc_rename",
+})
+
+MiscInputs:AddLabel('Player Name'):AddTextInput({
+	Default = "",
+	Placeholder = "Enter name",
+	Size = 100,
+	Callback = print,
+	Flag = "misc_name",
+})
+
+MiscInputs:AddLabel('Walk Speed'):AddTextInput({
+	Default = "16",
+	Placeholder = "Number",
+	Numeric = true,
+	Size = 70,
+	Callback = print,
+	Flag = "misc_walkspeed",
+})
+
+MiscInputs:AddLabel('Jump Power'):AddTextInput({
+	Default = "50",
+	Placeholder = "Number",
+	Numeric = true,
+	Size = 70,
+	Callback = print,
+	Flag = "misc_jumppower",
+})
+
+MiscInputs:AddLabel('Menu Key'):AddKeybind({
+	Default = "Insert",
+	Blacklist = {"Escape"},
+	Callback = print,
+	Flag = "misc_menu_key",
+})
+
+MiscInputs:AddLabel('Panic Key'):AddKeybind({
+	Default = "End",
+	Callback = function(key)
+		Logging.new("crop",'Panic key set to '..tostring(key),5)
+	end,
+	Flag = "misc_panic_key",
+})
+
+local Custom = MiscInputs:AddCustomFrame(60)
+
+local CustomLabel = Instance.new("TextLabel")
+CustomLabel.BackgroundTransparency = 1
+CustomLabel.Size = UDim2.new(1, -20, 1, 0)
+CustomLabel.Position = UDim2.fromOffset(10, 0)
+CustomLabel.ZIndex = Custom.Root.ZIndex + 1
+CustomLabel.Font = Enum.Font.GothamMedium
+CustomLabel.Text = "Custom frame\nPlace any Roblox instance here"
+CustomLabel.TextColor3 = Color3.fromRGB(150, 190, 255)
+CustomLabel.TextSize = 12
+CustomLabel.TextWrapped = true
+CustomLabel.Parent = Custom.Root
+
+MiscActions:AddButton({
+	Icon = 'crosshairs',
+	Name = 'Send Notification',
+	ToolTip = 'Shows a test notification',
+	Callback = function()
+		Notification.new({
+			Title = "Neverlose",
+			Content = "Button pressed",
+			Duration = 4,
+		})
+	end,
+})
+
+MiscActions:AddButton({
+	Icon = 'crosshairs-slash',
+	Name = 'Send Log Entry',
+	Callback = function()
+		Logging.new("crosshairs",'Hit thatguy in the head for 100 damage',8)
+	end,
+})
+
+MiscActions:AddButton({
+	Icon = 'cube-vertexes',
+	Name = 'Toggle Interface',
+	Callback = function()
+		window:ToggleInterface()
+	end,
+})
+
+MiscActions:AddButton({
+	Icon = 'discord',
+	Name = 'Unload Script',
+	ToolTip = 'Destroys the interface and disconnects every signal',
+	Callback = function()
+		NeverLose:Unload()
+	end,
 })
 
 window.UserSettings:AddLabel('Menu Scale'):AddDropdown({
@@ -427,6 +748,25 @@ window.UserSettings:AddLabel('3D Menu'):AddToggle({
 	Callback = function(v)
 		window:Set3DRender(v);
 	end,
+})
+
+window.UserSettings:AddLabel('Menu Key'):AddKeybind({
+	Default = "Insert",
+	Callback = print,
+	Flag = "settings_menu_key",
+})
+
+window.UserSettings:AddLabel('Display Name'):AddTextInput({
+	Default = "Player",
+	Placeholder = "Name",
+	Size = 100,
+	Callback = function(v)
+		window:SetAccount({
+			Username = v,
+			Expires = "Never"
+		})
+	end,
+	Flag = "settings_display_name",
 })
 
 window.UserSettings:AddButton({
