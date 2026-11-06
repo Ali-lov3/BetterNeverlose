@@ -4817,6 +4817,10 @@ function NeverLose:CreateWindow(Config)
 			SetSearching(false);
 			Tab.Select();
 
+			if Entry.Meta.SubTab then
+				Entry.Meta.SubTab.Select();
+			end;
+
 			task.spawn(function()
 				task.wait(0.5);
 
@@ -5283,6 +5287,7 @@ function NeverLose:CreateWindow(Config)
 		TabBarCorner.Parent = TabBar
 
 		local Unified = NeverLose.IsMobile and Config.Type ~= "Single";
+		local PageScrollRef;
 		local TabFrame = Instance.new("Frame")
 		local LeftScroll = Instance.new((Unified and "Frame") or "ScrollingFrame")
 		local UIListLayout = Instance.new("UIListLayout")
@@ -5361,6 +5366,8 @@ function NeverLose:CreateWindow(Config)
 			local PageScroll = Instance.new("ScrollingFrame")
 			local PageColumns = Instance.new("Frame")
 			local PagePadding = Instance.new("UIPadding")
+
+			PageScrollRef = PageScroll;
 
 			PageScroll.Name = NeverLose.RandomString();
 			PageScroll.Parent = TabFrame
@@ -5552,7 +5559,7 @@ function NeverLose:CreateWindow(Config)
 			end;
 		end));
 
-		function Tab:AddSection(Config)
+		local function CreateSection(Config , Left , Right , SubTab)
 			Config = NeverLose:ProcessParams(Config , {
 				Name = "SECTION",
 				Position = 'left'
@@ -5566,7 +5573,7 @@ function NeverLose:CreateWindow(Config)
 			local UIListLayout = Instance.new("UIListLayout")
 
 			SectionFrame.Name = NeverLose.RandomString();
-			SectionFrame.Parent = (string.lower(Config.Position) == 'left' and LeftScroll) or RightScroll
+			SectionFrame.Parent = (string.lower(Config.Position) == 'left' and Left) or Right
 			SectionFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 			SectionFrame.BackgroundTransparency = 1.000
 			SectionFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -5630,7 +5637,8 @@ function NeverLose:CreateWindow(Config)
 
 			NeverLose.SectionMeta[SectionHandler] = {
 				Tab = Tab,
-				Section = tostring(Config.Name)
+				SubTab = SubTab,
+				Section = (SubTab and (tostring(SubTab.Name) .. "  /  ") or "") .. tostring(Config.Name)
 			};
 
 			local Section = NeverLose:RegisiterItem(SectionHandler , Tab.Signal);
@@ -5667,6 +5675,235 @@ function NeverLose:CreateWindow(Config)
 			Tab.Signal:Connect(Section.SetRender);
 
 			return Section;
+		end;
+
+		function Tab:AddSection(Config)
+			return CreateSection(Config , LeftScroll , RightScroll , nil);
+		end;
+
+		local SubTabs = {};
+		local SubBar;
+		local CurrentSubTab;
+
+		local function EnsureSubBar()
+			if SubBar then
+				return;
+			end;
+
+			local SubBarLayout = Instance.new("UIListLayout")
+			local SubBarPadding = Instance.new("UIPadding")
+
+			SubBar = Instance.new("ScrollingFrame")
+			SubBar.Name = NeverLose.RandomString();
+			SubBar.Parent = TabFrame
+			SubBar.BackgroundTransparency = 1.000
+			SubBar.BorderSizePixel = 0
+			SubBar.Position = UDim2.new(0, 0, 0, 2)
+			SubBar.Size = UDim2.new(1, -5, 0, 30)
+			SubBar.ScrollBarThickness = 0
+			SubBar.ScrollingDirection = Enum.ScrollingDirection.X
+			SubBar.AutomaticCanvasSize = Enum.AutomaticSize.X
+			SubBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+			SubBar.ZIndex = 9
+
+			SubBarLayout.Parent = SubBar
+			SubBarLayout.FillDirection = Enum.FillDirection.Horizontal
+			SubBarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			SubBarLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+			SubBarLayout.Padding = UDim.new(0, 6)
+
+			SubBarPadding.PaddingLeft = UDim.new(0, 5)
+			SubBarPadding.Parent = SubBar
+
+			if PageScrollRef then
+				PageScrollRef.Visible = false;
+			else
+				LeftScroll.Visible = false;
+				RightScroll.Visible = false;
+			end;
+		end;
+
+		local function CreateColumns(Parent , PageType)
+			local function NewScroll(Position , Size)
+				local Scroll = Instance.new("ScrollingFrame")
+
+				Scroll.Name = NeverLose.RandomString();
+				Scroll.Parent = Parent
+				Scroll.Active = true
+				Scroll.AnchorPoint = Vector2.new(0.5, 0.5)
+				Scroll.BackgroundTransparency = 1.000
+				Scroll.BorderSizePixel = 0
+				Scroll.ClipsDescendants = false
+				Scroll.Position = Position
+				Scroll.Size = Size
+				Scroll.ScrollBarThickness = 0
+				Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+				Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+				Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+				return Scroll;
+			end;
+
+			local function NewLayout(Holder , Alignment)
+				local Layout = Instance.new("UIListLayout")
+
+				Layout.Parent = Holder
+				Layout.HorizontalAlignment = Alignment
+				Layout.SortOrder = Enum.SortOrder.LayoutOrder
+				Layout.Padding = UDim.new(0, 5)
+			end;
+
+			if PageType == "Single" then
+				local Column = NewScroll(UDim2.new(0.5, 0, 0.5, 0) , UDim2.new(1, 0, 1, -5));
+
+				NewLayout(Column , Enum.HorizontalAlignment.Right);
+
+				return Column , Column;
+			end;
+
+			if NeverLose.IsMobile then
+				local Scroll = NewScroll(UDim2.new(0.5, 0, 0.5, 0) , UDim2.new(1, 0, 1, -5));
+				local Columns = Instance.new("Frame")
+				local ColumnsPadding = Instance.new("UIPadding")
+				local LeftColumn = Instance.new("Frame")
+				local RightColumn = Instance.new("Frame")
+
+				Columns.Name = NeverLose.RandomString();
+				Columns.Parent = Scroll
+				Columns.BackgroundTransparency = 1.000
+				Columns.BorderSizePixel = 0
+				Columns.Size = UDim2.new(1, 0, 0, 0)
+				Columns.AutomaticSize = Enum.AutomaticSize.Y
+
+				ColumnsPadding.PaddingBottom = UDim.new(0, 12)
+				ColumnsPadding.Parent = Columns
+
+				LeftColumn.Name = NeverLose.RandomString();
+				LeftColumn.Parent = Columns
+				LeftColumn.BackgroundTransparency = 1.000
+				LeftColumn.BorderSizePixel = 0
+				LeftColumn.Position = UDim2.new(0, 0, 0, 0)
+				LeftColumn.Size = UDim2.new(0.5, 0, 0, 0)
+				LeftColumn.AutomaticSize = Enum.AutomaticSize.Y
+
+				RightColumn.Name = NeverLose.RandomString();
+				RightColumn.Parent = Columns
+				RightColumn.BackgroundTransparency = 1.000
+				RightColumn.BorderSizePixel = 0
+				RightColumn.Position = UDim2.new(0.5, 0, 0, 0)
+				RightColumn.Size = UDim2.new(0.5, 0, 0, 0)
+				RightColumn.AutomaticSize = Enum.AutomaticSize.Y
+
+				NewLayout(LeftColumn , Enum.HorizontalAlignment.Right);
+				NewLayout(RightColumn , Enum.HorizontalAlignment.Left);
+
+				return LeftColumn , RightColumn;
+			end;
+
+			local LeftColumn = NewScroll(UDim2.new(0.25, 0, 0.5, 0) , UDim2.new(0.5, 0, 1, -5));
+			local RightColumn = NewScroll(UDim2.new(0.75, 0, 0.5, 0) , UDim2.new(0.5, 0, 1, -5));
+
+			NewLayout(LeftColumn , Enum.HorizontalAlignment.Right);
+			NewLayout(RightColumn , Enum.HorizontalAlignment.Left);
+
+			return LeftColumn , RightColumn;
+		end;
+
+		function Tab:AddSubTab(Config)
+			Config = NeverLose:ProcessParams(Config , {
+				Name = "Sub Tab",
+				Type = "Double"
+			});
+
+			EnsureSubBar();
+
+			local SubTab = {
+				Name = tostring(Config.Name)
+			};
+
+			local SubButton = Instance.new("TextButton")
+			local SubCorner = Instance.new("UICorner")
+			local SubPadding = Instance.new("UIPadding")
+			local Page = Instance.new("Frame")
+
+			SubButton.Name = NeverLose.RandomString();
+			SubButton.Parent = SubBar
+			SubButton.AutoButtonColor = false
+			SubButton.AutomaticSize = Enum.AutomaticSize.X
+			SubButton.BackgroundColor3 = Color3.fromRGB(41, 45, 49)
+			SubButton.BackgroundTransparency = 0.700
+			SubButton.BorderSizePixel = 0
+			SubButton.LayoutOrder = #SubTabs + 1
+			SubButton.Size = UDim2.new(0, 0, 0, 26)
+			SubButton.ZIndex = 10
+			SubButton.Font = Enum.Font.GothamMedium
+			SubButton.Text = SubTab.Name
+			SubButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			SubButton.TextSize = 12.000
+			SubButton.TextTransparency = 0.450
+
+			SubCorner.CornerRadius = UDim.new(0, 8)
+			SubCorner.Parent = SubButton
+
+			SubPadding.PaddingLeft = UDim.new(0, 12)
+			SubPadding.PaddingRight = UDim.new(0, 12)
+			SubPadding.Parent = SubButton
+
+			Page.Name = NeverLose.RandomString();
+			Page.Parent = TabFrame
+			Page.BackgroundTransparency = 1.000
+			Page.BorderSizePixel = 0
+			Page.Position = UDim2.new(0, 0, 0, 36)
+			Page.Size = UDim2.new(1, 0, 1, -38)
+			Page.Visible = false
+
+			local Left , Right = CreateColumns(Page , Config.Type);
+
+			SubTab.SetValue = LPH_NO_VIRTUALIZE(function(Value)
+				local Changed = Page.Visible ~= Value;
+
+				Page.Visible = Value;
+
+				NeverLose.PlayAnimate(SubButton , SlowyTween , {
+					BackgroundTransparency = (Value and 0.300) or 0.700,
+					BackgroundColor3 = (Value and Color3.fromRGB(41, 45, 49):Lerp(NeverLose.AccentColor , 0.35)) or Color3.fromRGB(41, 45, 49),
+					TextTransparency = (Value and 0) or 0.450
+				})
+
+				if Value and Changed then
+					Page.Position = UDim2.new(0, 0, 0, 44);
+
+					NeverLose.PlayAnimate(Page , VSlowTween , {
+						Position = UDim2.new(0, 0, 0, 36)
+					})
+				end;
+			end);
+
+			SubTab.Select = LPH_NO_VIRTUALIZE(function()
+				CurrentSubTab = SubTab;
+
+				for i,v in next , SubTabs do
+					v.SetValue(v == SubTab);
+				end;
+			end);
+
+			function SubTab:AddSection(SectionConfig)
+				return CreateSection(SectionConfig , Left , Right , SubTab);
+			end;
+
+			table.insert(SubTabs , SubTab);
+
+			NeverLose:AddSignal(SubButton.MouseButton1Click:Connect(LPH_NO_VIRTUALIZE(function()
+				SubTab.Select();
+			end)));
+
+			if not CurrentSubTab then
+				SubTab.Select();
+			else
+				SubTab.SetValue(false);
+			end;
+
+			return SubTab;
 		end;
 
 		return Tab;
