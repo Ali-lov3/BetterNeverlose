@@ -2152,40 +2152,83 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 		end;
 
 		local IsHold = false;
+		local TouchPending = false;
+		local TouchOrigin = Vector3.zero;
+		local TouchObject = nil;
+		local LockedScroll = nil;
+
+		local ReleaseScroll = function()
+			if LockedScroll then
+				LockedScroll.ScrollingEnabled = true;
+				LockedScroll = nil;
+			end;
+		end;
 
 		do
 			SlideMain.InputBegan:Connect(LPH_NO_VIRTUALIZE(function(Input)
-				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
 					IsHold = true
 					Update(Input)
+				elseif Input.UserInputType == Enum.UserInputType.Touch then
+					TouchPending = true;
+					TouchOrigin = Input.Position;
+					TouchObject = Input;
 				end
 			end))
 
 			SlideMain.InputEnded:Connect(LPH_NO_VIRTUALIZE(function(Input)
-				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-					if UserInputService.TouchEnabled then
-						if not NeverLose:IsMouseOverFrame(SlideMain) then
-							IsHold = false
-						end;
-					else
-						IsHold = false
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+					IsHold = false
+				elseif Input.UserInputType == Enum.UserInputType.Touch and Input == TouchObject then
+					if TouchPending then
+						Update(Input)
 					end;
+
+					TouchPending = false;
+					TouchObject = nil;
+					IsHold = false;
+
+					ReleaseScroll();
 				end
 			end))
 
 			UserInputService.InputChanged:Connect(LPH_NO_VIRTUALIZE(function(Input)
-				if IsHold then
-					if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch)  then
-						if UserInputService.TouchEnabled then
-							if not NeverLose:IsMouseOverFrame(SlideMain) then
-								IsHold = false
-							else
-								Update(Input)
-							end;
-						else
-							Update(Input)
-						end;
+				if Input.UserInputType == Enum.UserInputType.MouseMovement then
+					if IsHold then
+						Update(Input)
 					end;
+				elseif Input.UserInputType == Enum.UserInputType.Touch and Input == TouchObject then
+					if TouchPending then
+						local Delta = Input.Position - TouchOrigin;
+
+						if math.abs(Delta.X) > 6 and math.abs(Delta.X) > math.abs(Delta.Y) then
+							TouchPending = false;
+							IsHold = true;
+
+							LockedScroll = SlideMain:FindFirstAncestorOfClass('ScrollingFrame');
+
+							if LockedScroll then
+								LockedScroll.ScrollingEnabled = false;
+							end;
+
+							Update(Input);
+						elseif math.abs(Delta.Y) > 6 then
+							TouchPending = false;
+							TouchObject = nil;
+						end;
+					elseif IsHold then
+						Update(Input);
+					end;
+				end;
+			end));
+
+			UserInputService.InputEnded:Connect(LPH_NO_VIRTUALIZE(function(Input)
+				if Input.UserInputType == Enum.UserInputType.Touch and LockedScroll and (Input == TouchObject or TouchObject == nil) then
+					TouchPending = false;
+					TouchObject = nil;
+					IsHold = false;
+
+					ReleaseScroll();
 				end;
 			end));
 		end;
@@ -4340,15 +4383,14 @@ function NeverLose:CreateWindow(Config)
 	LeftScrollingFrame.Size = UDim2.new(1, -10, 1, -115)
 	LeftScrollingFrame.ZIndex = 7
 	LeftScrollingFrame.ScrollBarThickness = 0
+	LeftScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+	LeftScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	LeftScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 	UIListLayout.Parent = LeftScrollingFrame
 	UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	UIListLayout.Padding = UDim.new(0, 5)
-
-	NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-		LeftScrollingFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 1)
-	end)))
 
 	BottomFrame.Name = NeverLose.RandomString();
 	BottomFrame.Parent = LeftMenuFrame
@@ -4787,10 +4829,9 @@ function NeverLose:CreateWindow(Config)
 				if Scroll then
 					local Scale = math.max(Window.UIScale.Scale , 0.01);
 					local Offset = (Root.AbsolutePosition.Y - Scroll.AbsolutePosition.Y) / Scale + Scroll.CanvasPosition.Y;
-					local Limit = math.max(Scroll.CanvasSize.Y.Offset - Scroll.AbsoluteSize.Y / Scale , 0);
 
 					NeverLose.PlayAnimate(Scroll , VSlowTween , {
-						CanvasPosition = Vector2.new(0 , math.clamp(Offset - 40 , 0 , Limit))
+						CanvasPosition = Vector2.new(0 , math.max(Offset - 40 , 0))
 					})
 				end;
 
@@ -5241,10 +5282,11 @@ function NeverLose:CreateWindow(Config)
 		TabBarCorner.CornerRadius = UDim.new(1, 0)
 		TabBarCorner.Parent = TabBar
 
+		local Unified = NeverLose.IsMobile and Config.Type ~= "Single";
 		local TabFrame = Instance.new("Frame")
-		local LeftScroll = Instance.new("ScrollingFrame")
+		local LeftScroll = Instance.new((Unified and "Frame") or "ScrollingFrame")
 		local UIListLayout = Instance.new("UIListLayout")
-		local RightScroll = Instance.new("ScrollingFrame")
+		local RightScroll = Instance.new((Unified and "Frame") or "ScrollingFrame")
 		local UIListLayout_2 = Instance.new("UIListLayout")
 
 		TabFrame.Name = NeverLose.RandomString();
@@ -5270,16 +5312,18 @@ function NeverLose:CreateWindow(Config)
 		LeftScroll.ClipsDescendants = false
 		LeftScroll.Position = UDim2.new(0.25, 0, 0.5, 0)
 		LeftScroll.Size = UDim2.new(0.5, 0, 1, -5)
-		LeftScroll.ScrollBarThickness = 0
+
+		if not Unified then
+			LeftScroll.ScrollBarThickness = 0
+			LeftScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+			LeftScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			LeftScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+		end;
 
 		UIListLayout.Parent = LeftScroll
 		UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 		UIListLayout.Padding = UDim.new(0, 5)
-
-		NeverLose:AddSignal(UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-			LeftScroll.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 1)
-		end)))
 
 		RightScroll.Name = NeverLose.RandomString();
 		RightScroll.Parent = TabFrame
@@ -5292,7 +5336,13 @@ function NeverLose:CreateWindow(Config)
 		RightScroll.ClipsDescendants = false
 		RightScroll.Position = UDim2.new(0.75, 0, 0.5, 0)
 		RightScroll.Size = UDim2.new(0.5, 0, 1, -5)
-		RightScroll.ScrollBarThickness = 0
+
+		if not Unified then
+			RightScroll.ScrollBarThickness = 0
+			RightScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+			RightScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			RightScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+		end;
 
 		UIListLayout_2.Parent = RightScroll
 		UIListLayout_2.SortOrder = Enum.SortOrder.LayoutOrder
@@ -5305,10 +5355,49 @@ function NeverLose:CreateWindow(Config)
 			UIListLayout_2 = UIListLayout;
 			LeftScroll.Size = UDim2.new(1, 0, 1, -5);
 			LeftScroll.Position = UDim2.new(0.5, 0, 0.5, 0)
-		else
-			NeverLose:AddSignal(UIListLayout_2:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(LPH_NO_VIRTUALIZE(function()
-				RightScroll.CanvasSize = UDim2.fromOffset(0,UIListLayout_2.AbsoluteContentSize.Y + 1)
-			end)))
+		end;
+
+		if Unified then
+			local PageScroll = Instance.new("ScrollingFrame")
+			local PageColumns = Instance.new("Frame")
+			local PagePadding = Instance.new("UIPadding")
+
+			PageScroll.Name = NeverLose.RandomString();
+			PageScroll.Parent = TabFrame
+			PageScroll.Active = true
+			PageScroll.AnchorPoint = Vector2.new(0.5, 0.5)
+			PageScroll.BackgroundTransparency = 1.000
+			PageScroll.BorderSizePixel = 0
+			PageScroll.Position = UDim2.new(0.5, 0, 0.5, 0)
+			PageScroll.Size = UDim2.new(1, 0, 1, -5)
+			PageScroll.ScrollBarThickness = 0
+			PageScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+			PageScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			PageScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+			PageColumns.Name = NeverLose.RandomString();
+			PageColumns.Parent = PageScroll
+			PageColumns.BackgroundTransparency = 1.000
+			PageColumns.BorderSizePixel = 0
+			PageColumns.Size = UDim2.new(1, 0, 0, 0)
+			PageColumns.AutomaticSize = Enum.AutomaticSize.Y
+
+			PagePadding.PaddingBottom = UDim.new(0, 12)
+			PagePadding.Parent = PageColumns
+
+			LeftScroll.Parent = PageColumns
+			LeftScroll.Active = false
+			LeftScroll.AnchorPoint = Vector2.new(0, 0)
+			LeftScroll.Position = UDim2.new(0, 0, 0, 0)
+			LeftScroll.Size = UDim2.new(0.5, 0, 0, 0)
+			LeftScroll.AutomaticSize = Enum.AutomaticSize.Y
+
+			RightScroll.Parent = PageColumns
+			RightScroll.Active = false
+			RightScroll.AnchorPoint = Vector2.new(0, 0)
+			RightScroll.Position = UDim2.new(0.5, 0, 0, 0)
+			RightScroll.Size = UDim2.new(0.5, 0, 0, 0)
+			RightScroll.AutomaticSize = Enum.AutomaticSize.Y
 		end;
 
 		NeverLose:AddSignal(TabIcon:GetPropertyChangedSignal('TextTransparency'):Connect(LPH_NO_VIRTUALIZE(function()
