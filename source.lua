@@ -161,13 +161,15 @@ local Mouse: Mouse = LocalPlayer:GetMouse();
 local CurrentCamera: Camera = cloneref(workspace.CurrentCamera);
 local ProtectGui = protect_gui or protectgui or (syn and syn.protect_gui) or function(s) return s; end;
 local GlobalWindow = Instance.new('ScreenGui');
-local ManualTween = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
-local SlowyTween = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
-local FastTween = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out);
-local VSlowTween = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
+local ManualTween = TweenInfo.new(0.14, Enum.EasingStyle.Quart, Enum.EasingDirection.Out);
+local SlowyTween = TweenInfo.new(0.28, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out);
+local FastTween = TweenInfo.new(0.1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out);
+local VSlowTween = TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out);
 
-NeverLose.PopTween = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out);
-NeverLose.CloseTween = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In);
+NeverLose.PopTween = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out);
+NeverLose.SlideTween = TweenInfo.new(0.75, Enum.EasingStyle.Back, Enum.EasingDirection.Out);
+NeverLose.SpinTween = TweenInfo.new(0.9, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out);
+NeverLose.CloseTween = TweenInfo.new(0.24, Enum.EasingStyle.Quart, Enum.EasingDirection.In);
 local Encryption = {};
 
 NeverLose.UserProfile = Players:GetUserThumbnailAsync(LocalPlayer.UserId , Enum.ThumbnailType.HeadShot , Enum.ThumbnailSize.Size150x150)
@@ -1330,7 +1332,7 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 		if value then
 			SetPosition();
 
-			PopupUIScale.Scale = PopupScale * 0.94;
+			PopupUIScale.Scale = PopupScale * 0.86;
 
 			NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
 				Scale = PopupScale
@@ -1359,7 +1361,7 @@ function NeverLose:CreateOptionWindow(Frame: Frame , Zindex)
 			end)
 		else
 			NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
-				Scale = PopupScale * 0.96
+				Scale = PopupScale * 0.9
 			})
 
 			NeverLose.PlayAnimate(OptionHandler , SlowyTween , {
@@ -1537,7 +1539,7 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 
 			ColorPickerHandler.Position = UDim2.fromOffset(PickerX, PickerY);
 
-			PopupUIScale.Scale = PopupScale * 0.94;
+			PopupUIScale.Scale = PopupScale * 0.86;
 
 			NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
 				Scale = PopupScale
@@ -1576,7 +1578,7 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 			Shadow:Render(true)
 		else
 			NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
-				Scale = PopupScale * 0.96
+				Scale = PopupScale * 0.9
 			})
 
 			NeverLose.PlayAnimate(ColorPickerHandler,SlowyTween , {
@@ -2980,7 +2982,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 				if value then
 					Shadow:Render(true);
 
-					PopupUIScale.Scale = PopupScale * 0.94;
+					PopupUIScale.Scale = PopupScale * 0.86;
 
 					NeverLose.PlayAnimate(PopupUIScale , NeverLose.PopTween , {
 						Scale = PopupScale
@@ -2999,7 +3001,7 @@ function NeverLose:RegisiterHandler(Handler: Frame , Signal)
 					end;
 				else
 					NeverLose.PlayAnimate(PopupUIScale , NeverLose.CloseTween , {
-						Scale = PopupScale * 0.96
+						Scale = PopupScale * 0.9
 					})
 
 					NeverLose.PlayAnimate(DropdownHandler , SlowyTween , {
@@ -4040,7 +4042,7 @@ function NeverLose:CreateWindow(Config)
 	Window.BaseScale = (NeverLose.IsMobile and NeverLose.MobileScale) or 1;
 
 	WindowUIScale.Name = NeverLose.RandomString();
-	WindowUIScale.Scale = Window.BaseScale * 0.94;
+	WindowUIScale.Scale = Window.BaseScale * 0.84;
 	WindowUIScale.Parent = WindowFrame;
 
 	Window.UIScale = WindowUIScale;
@@ -4178,7 +4180,7 @@ function NeverLose:CreateWindow(Config)
 			})
 
 			NeverLose.PlayAnimate(WindowUIScale , NeverLose.CloseTween , {
-				Scale = Window.BaseScale * 0.94
+				Scale = Window.BaseScale * 0.88
 			})
 
 			NeverLose.PlayAnimate(LogoImage , SlowyTween , {
@@ -5428,7 +5430,7 @@ function NeverLose:CreateWindow(Config)
 
 			if value then
 				if not WasActive then
-					TabFrame.Position = UDim2.new(0.5, 0, 0.5, 14);
+					TabFrame.Position = UDim2.new(0.5, 0, 0.5, 26);
 
 					NeverLose.PlayAnimate(TabFrame , VSlowTween , {
 						Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -5448,10 +5450,18 @@ function NeverLose:CreateWindow(Config)
 					BackgroundColor3 = Color3.fromRGB(41, 45, 49):Lerp(NeverLose.AccentColor , 0.2)
 				})
 
-				NeverLose.PlayAnimate(TabBar , SlowyTween , {
+				NeverLose.PlayAnimate(TabBar , NeverLose.PopTween , {
 					BackgroundTransparency = 0,
 					Size = UDim2.new(0, 3, 0, 16)
 				})
+
+				if not WasActive then
+					TabIcon.Rotation = -25;
+
+					NeverLose.PlayAnimate(TabIcon , NeverLose.SpinTween , {
+						Rotation = 0
+					})
+				end;
 
 				NeverLose.PlayAnimate(TabContentLabel , SlowyTween , {
 					TextTransparency = 0
@@ -6836,7 +6846,7 @@ function NeverLose:CreateWindow(Config)
 				pressing = false;
 				dragInput = nil;
 
-				NeverLose.PlayAnimate(ToggleButton, FastTween, {
+				NeverLose.PlayAnimate(ToggleButton, NeverLose.SpinTween, {
 					Size = UDim2.fromOffset(40, 40)
 				});
 
@@ -7189,9 +7199,57 @@ function NeverLose:CreateNotification()
 
 		NotifyFrame.Size = UDim2.new(0, MainSize + 65, 0, 55);
 
+		local ProgressBar = Instance.new("Frame")
+		local ProgressCorner = Instance.new("UICorner")
+
+		ProgressBar.Name = NeverLose.RandomString();
+		ProgressBar.Parent = NotifyFrame
+		ProgressBar.AnchorPoint = Vector2.new(0, 1)
+		ProgressBar.BackgroundColor3 = NeverLose.AccentColor
+		ProgressBar.BackgroundTransparency = 0.2
+		ProgressBar.BorderSizePixel = 0
+		ProgressBar.Position = UDim2.new(0, 0, 1, 0)
+		ProgressBar.Size = UDim2.new(1, 0, 0, 2)
+		ProgressBar.ZIndex = 133
+
+		ProgressCorner.CornerRadius = UDim.new(1, 0)
+		ProgressCorner.Parent = ProgressBar
+
+		LogoImage.Rotation = -140
+		NotifyName.TextTransparency = 1
+		NotifyContent.TextTransparency = 1
+		NotifyFrame.BackgroundTransparency = 1
+		UIStroke.Transparency = 1
+
 		shadow:Render(true)
-		NeverLose.PlayAnimate(NotifyFrame , VSlowTween , {
+		NeverLose.PlayAnimate(NotifyFrame , NeverLose.SlideTween , {
 			Position = UDim2.new(1, 0, 0, 0)
+		})
+
+		NeverLose.PlayAnimate(NotifyFrame , SlowyTween , {
+			BackgroundTransparency = 0.075
+		})
+
+		NeverLose.PlayAnimate(UIStroke , SlowyTween , {
+			Transparency = 0.65
+		})
+
+		NeverLose.PlayAnimate(LogoImage , NeverLose.SpinTween , {
+			Rotation = 0
+		})
+
+		task.delay(0.15 , function()
+			NeverLose.PlayAnimate(NotifyName , SlowyTween , {
+				TextTransparency = 0
+			})
+
+			NeverLose.PlayAnimate(NotifyContent , SlowyTween , {
+				TextTransparency = 0.65
+			})
+		end)
+
+		NeverLose.PlayAnimate(ProgressBar , TweenInfo.new(Config.Duration or 5 , Enum.EasingStyle.Linear , Enum.EasingDirection.Out) , {
+			Size = UDim2.new(0, 0, 0, 2)
 		})
 
 		ContainerFrame.Size = UDim2.new(0, 0, 0, 65)
@@ -7206,8 +7264,17 @@ function NeverLose:CreateNotification()
 
 			shadow:Render(false)
 
-			NeverLose.PlayAnimate(NotifyFrame , SlowyTween , {
+			NeverLose.PlayAnimate(NotifyFrame , NeverLose.CloseTween , {
+				BackgroundTransparency = 1,
+				Position = UDim2.new(1, 320, 0, 0)
+			})
+
+			NeverLose.PlayAnimate(ProgressBar , SlowyTween , {
 				BackgroundTransparency = 1
+			})
+
+			NeverLose.PlayAnimate(LogoImage , NeverLose.CloseTween , {
+				Rotation = 90
 			})
 
 			NeverLose.PlayAnimate(UIStroke , SlowyTween , {
