@@ -1658,21 +1658,64 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 
 	ColorPickerLib.IsHold = false;
 
+	ColorPickerHandler.Active = true;
+	SaViMap.Active = true;
+	ColorMap.Active = true;
+
+	local LockedScrolls = {};
+
+	local LockScroll = function()
+		if #LockedScrolls > 0 then
+			return;
+		end;
+
+		local Ancestor = HandleFrame.Parent;
+
+		while Ancestor do
+			if Ancestor:IsA('ScrollingFrame') and Ancestor.ScrollingEnabled then
+				Ancestor.ScrollingEnabled = false;
+				table.insert(LockedScrolls , Ancestor);
+			end;
+
+			Ancestor = Ancestor.Parent;
+		end;
+	end;
+
+	local UnlockScroll = function()
+		for i,v in next , LockedScrolls do
+			if v and v.Parent then
+				v.ScrollingEnabled = true;
+			end;
+		end;
+
+		table.clear(LockedScrolls);
+	end;
+
 	NeverLose:AddSignal(ColorPickerHandler.InputBegan:Connect(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 			ColorPickerLib.IsHold = true;
+			LockScroll();
 		end;
 	end));
 
 	NeverLose:AddSignal(ColorPickerHandler.InputEnded:Connect(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 			ColorPickerLib.IsHold = false;
+			UnlockScroll();
+		end;
+	end));
+
+	NeverLose:AddSignal(UserInputService.InputEnded:Connect(function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+			ColorPickerLib.IsHold = false;
+			UnlockScroll();
 		end;
 	end));
 
 	NeverLose:AddSignal(ColorMap.InputBegan:Connect(LPH_NO_VIRTUALIZE(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 			ColorPickerLib.IsHold = true;
+			LockScroll();
 
 			while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or ColorPickerLib.IsHold) do task.wait()
 				local ColorY = ColorMap.AbsolutePosition.X
@@ -1689,6 +1732,7 @@ function NeverLose:CreateColorPicker(HandleFrame: Frame)
 	NeverLose:AddSignal(SaViMap.InputBegan:Connect(LPH_NO_VIRTUALIZE(function(Input)
 		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 			ColorPickerLib.IsHold = true;
+			LockScroll();
 
 			while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or ColorPickerLib.IsHold) do task.wait();
 				local PosX = SaViMap.AbsolutePosition.X;
