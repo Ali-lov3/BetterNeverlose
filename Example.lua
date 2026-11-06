@@ -45,23 +45,49 @@ local Legit = window:AddTab({
 	Name = "Legit"
 })
 
-local Raging = Rage:AddSection({
+local RageMain = Rage:AddSubTab({
+	Name = "Main"
+})
+
+local RageAntiAim = Rage:AddSubTab({
+	Name = "Anti-Aim"
+})
+
+local LegitAim = Legit:AddSubTab({
+	Name = "Aim Assist"
+})
+
+local LegitTrigger = Legit:AddSubTab({
+	Name = "Triggerbot"
+})
+
+local Raging = RageMain:AddSection({
 	Name = "MAIN"
 })
 
-local Selection = Rage:AddSection({
+local Selection = RageMain:AddSection({
 	Name = "SELECTION",
 	Position = 'left'
 })
 
-local Other = Rage:AddSection({
+local Other = RageMain:AddSection({
 	Name = "OTHER",
 	Position = 'right'
 })
 
-local AntiAim = Rage:AddSection({
+local AntiAim = RageAntiAim:AddSection({
 	Name = "ANTI-AIM",
-	Position = 'right'
+	Position = 'left'
+})
+
+local LegitAssist = LegitAim:AddSection({
+	Name = "AIM ASSIST",
+	Position = 'left'
+})
+
+local LegitTrig = LegitTrigger:AddSection({
+	Name = "TRIGGERBOT",
+	Position = 'left'
 })
 
 Raging:AddLabel('Ts so skbidi\nfr noi cap',true)
@@ -304,6 +330,46 @@ AntiAim:AddLabel('Freestanding'):AddToggle({
 AntiAim:AddLabel('Mouse Override'):AddToggle({
 	Default = false,
 	Flag = "mouse_override",
+	Callback = print
+})
+
+LegitAssist:AddLabel('Enabled'):AddToggle({
+	Default = false,
+	Flag = "legit_assist",
+	Callback = print
+})
+
+LegitAssist:AddLabel('Smoothing'):AddSlider({
+	Min = 0,
+	Max = 100,
+	Default = 40,
+	Type = "%",
+	Size = 95,
+	Flag = "legit_smooth",
+	Callback = print
+})
+
+LegitAssist:AddLabel('Field of View'):AddSlider({
+	Min = 0,
+	Max = 360,
+	Default = 60,
+	Size = 100,
+	Flag = "legit_fov",
+	Callback = print
+})
+
+LegitTrig:AddLabel('Enabled'):AddToggle({
+	Default = false,
+	Flag = "legit_trigger",
+	Callback = print
+})
+
+LegitTrig:AddLabel('Delay'):AddSlider({
+	Min = 0,
+	Max = 500,
+	Default = 50,
+	Size = 100,
+	Flag = "legit_trigger_delay",
 	Callback = print
 })
 
