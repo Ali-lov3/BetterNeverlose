@@ -146,6 +146,7 @@ local NeverLose = {};
 NeverLose.BuiltInRegular = Font.new('rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json',Enum.FontWeight.Regular,Enum.FontStyle.Normal);
 NeverLose.BuiltInBold = Font.new('rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json',Enum.FontWeight.Bold,Enum.FontStyle.Normal);
 NeverLose.GlobalSignals = {};
+NeverLose.Cleanups = {};
 NeverLose.UnloadEnabled = false;
 
 local cloneref: cloneref = cloneref or function(f) return f end;
@@ -3986,6 +3987,23 @@ function NeverLose:RegisiterItem(Frame: Frame , Signel)
 		return UserFrameItem;
 	end;
 
+	function idx:AddCustomFrame(Height: number)
+		local Custom = Instance.new("Frame")
+
+		Custom.Name = NeverLose.RandomString();
+		Custom.Parent = Frame
+		Custom.BackgroundTransparency = 1.000
+		Custom.BorderSizePixel = 0
+		Custom.ClipsDescendants = true
+		Custom.Size = UDim2.new(1, 0, 0, Height or 100)
+		Custom.ZIndex = LayerIndex + 8
+
+		return {
+			Root = Custom,
+			Signal = Signel,
+		};
+	end;
+
 	return idx;
 end;
 
@@ -5735,6 +5753,10 @@ function NeverLose:CreateWindow(Config)
 			return CreateSection(Config , LeftScroll , RightScroll , nil);
 		end;
 
+		function Tab:AddESPManager(Options)
+			return NeverLose:BuildESPManager(Tab , Options);
+		end;
+
 		local SubTabs = {};
 		local SubBar;
 		local CurrentSubTab;
@@ -5944,6 +5966,10 @@ function NeverLose:CreateWindow(Config)
 
 			function SubTab:AddSection(SectionConfig)
 				return CreateSection(SectionConfig , Left , Right , SubTab);
+			end;
+
+			function SubTab:AddESPManager(Options)
+				return NeverLose:BuildESPManager(SubTab , Options);
 			end;
 
 			table.insert(SubTabs , SubTab);
@@ -7729,9 +7755,834 @@ function NeverLose:Unload()
 
 	NeverLose.ScreenGui:Destroy();
 
+	for i,v in next , NeverLose.Cleanups do
+		pcall(v)
+	end;
+
 	for i,v in next , NeverLose.GlobalSignals do
 		pcall(v.Disconnect,v)
 	end;
+end;
+
+function NeverLose:BuildESPManager(Target, Options)
+	Options = Options or {};
+
+	local Prefix = Options.FlagPrefix or "esp_";
+	local PreviewHeight = Options.PreviewHeight or 340;
+	local Manager = {};
+	local Connections = {};
+	local Objects = {};
+	local BindName = NeverLose.RandomString();
+	local FontUrl = "https://github.com/bluescan/proggyfonts/raw/master/ProggyOriginal/ProggyClean.ttf";
+	local Black = Color3.new(0, 0, 0);
+	local HealthLow = Color3.fromRGB(255, 50, 50);
+	local HealthHigh = Color3.fromRGB(90, 255, 90);
+	local TopOffset = Vector3.new(0, 2.7, 0);
+	local BottomOffset = Vector3.new(0, 3.1, 0);
+	local Camera = workspace.CurrentCamera;
+
+	local Config = {
+		Enabled = false,
+		TeamCheck = false,
+		MaxDistance = 2000,
+		Box = true,
+		BoxFill = true,
+		Name = true,
+		Health = true,
+		Distance = true,
+		Tool = true,
+		Tracer = false,
+		TextSize = 13,
+		BoxColor = Color3.fromRGB(255, 255, 255),
+		FillColor = Color3.fromRGB(120, 140, 255),
+		TracerColor = Color3.fromRGB(255, 255, 255),
+		NameColor = Color3.fromRGB(255, 255, 255),
+		InfoColor = Color3.fromRGB(200, 200, 200),
+		FillTransparency = 0.45,
+	};
+
+	if typeof(Options.Defaults) == "table" then
+		for Key, Value in next, Options.Defaults do
+			Config[Key] = Value;
+		end;
+	end;
+
+	local function loadFont()
+		local ok, result = pcall(function()
+			if not (writefile and isfile and getcustomasset) then
+				error("unsupported");
+			end;
+
+			if not isfile("ProggyClean.ttf") then
+				writefile("ProggyClean.ttf", game:HttpGet(FontUrl));
+			end;
+
+			writefile("ProggyFont.json", HttpService:JSONEncode({
+				name = "Proggy",
+				faces = {
+					{
+						name = "Regular",
+						weight = 400,
+						style = "normal",
+						assetId = getcustomasset("ProggyClean.ttf"),
+					},
+				},
+			}));
+
+			return Font.new(getcustomasset("ProggyFont.json"));
+		end);
+
+		if ok and result then
+			return result;
+		end;
+
+		return Font.fromEnum(Enum.Font.Code);
+	end;
+
+	local ProggyFont = loadFont();
+
+	local function setVisible(Inst, Value)
+		if Inst.Visible ~= Value then
+			Inst.Visible = Value;
+		end;
+	end;
+
+	local function setText(Label, Text)
+		if Label.Text ~= Text then
+			Label.Text = Text;
+		end;
+	end;
+
+	local function newFrame(Parent, Z)
+		local Frame = Instance.new("Frame");
+
+		Frame.BackgroundTransparency = 1;
+		Frame.BorderSizePixel = 0;
+		Frame.Visible = false;
+
+		if Z then
+			Frame.ZIndex = Z;
+		end;
+
+		Frame.Parent = Parent;
+
+		return Frame;
+	end;
+
+	local function newStroke(Frame, Color)
+		local Stroke = Instance.new("UIStroke");
+
+		Stroke.Color = Color;
+		Stroke.Thickness = 1;
+		Stroke.LineJoinMode = Enum.LineJoinMode.Miter;
+		Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+		Stroke.Parent = Frame;
+
+		return Stroke;
+	end;
+
+	local function newLabel(Parent, Z)
+		local Label = Instance.new("TextLabel");
+
+		Label.BackgroundTransparency = 1;
+		Label.BorderSizePixel = 0;
+		Label.FontFace = ProggyFont;
+		Label.TextSize = Config.TextSize;
+		Label.TextStrokeColor3 = Black;
+		Label.TextStrokeTransparency = 0;
+		Label.TextXAlignment = Enum.TextXAlignment.Center;
+		Label.TextYAlignment = Enum.TextYAlignment.Center;
+		Label.Size = UDim2.fromOffset(200, 14);
+		Label.AnchorPoint = Vector2.new(0.5, 0.5);
+		Label.Text = "";
+		Label.Visible = false;
+
+		if Z then
+			Label.ZIndex = Z;
+		end;
+
+		Label.Parent = Parent;
+
+		return Label;
+	end;
+
+	local function buildElements(Parent, Z)
+		local Obj = {};
+
+		Obj.Fill = newFrame(Parent, Z);
+		Obj.Fill.BackgroundColor3 = Config.FillColor;
+		Obj.Fill.BackgroundTransparency = Config.FillTransparency;
+
+		local Gradient = Instance.new("UIGradient");
+
+		Gradient.Rotation = 90;
+		Gradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(1, 0.85),
+		});
+		Gradient.Parent = Obj.Fill;
+
+		Obj.Outer = newFrame(Parent, Z);
+		newStroke(Obj.Outer, Black);
+
+		Obj.Main = newFrame(Parent, Z);
+		Obj.MainStroke = newStroke(Obj.Main, Config.BoxColor);
+
+		Obj.Inner = newFrame(Parent, Z);
+		newStroke(Obj.Inner, Black);
+
+		Obj.HealthBack = newFrame(Parent, Z);
+		Obj.HealthBack.BackgroundColor3 = Black;
+		Obj.HealthBack.BackgroundTransparency = 0.2;
+
+		Obj.HealthFill = newFrame(Parent, Z);
+		Obj.HealthFill.BackgroundTransparency = 0;
+		Obj.HealthFill.AnchorPoint = Vector2.new(0, 1);
+
+		Obj.HealthText = newLabel(Parent, Z);
+		Obj.HealthText.Size = UDim2.fromOffset(30, 14);
+		Obj.HealthText.TextXAlignment = Enum.TextXAlignment.Right;
+		Obj.HealthText.AnchorPoint = Vector2.new(1, 0.5);
+
+		Obj.Tracer = newFrame(Parent, Z);
+		Obj.Tracer.AnchorPoint = Vector2.new(0.5, 0.5);
+		Obj.Tracer.BackgroundTransparency = 0;
+		Obj.Tracer.BackgroundColor3 = Config.TracerColor;
+
+		Obj.Name = newLabel(Parent, Z);
+		Obj.Info = newLabel(Parent, Z);
+		Obj.ToolLabel = newLabel(Parent, Z);
+
+		return Obj;
+	end;
+
+	local function hideElements(Obj)
+		Obj.Outer.Visible = false;
+		Obj.Main.Visible = false;
+		Obj.Inner.Visible = false;
+		Obj.Fill.Visible = false;
+		Obj.HealthBack.Visible = false;
+		Obj.HealthFill.Visible = false;
+		Obj.HealthText.Visible = false;
+		Obj.Tracer.Visible = false;
+		Obj.Name.Visible = false;
+		Obj.Info.Visible = false;
+		Obj.ToolLabel.Visible = false;
+	end;
+
+	local function drawElements(Obj, Data)
+		local Left = Data.Left;
+		local Top = Data.Top;
+		local W = Data.Width;
+		local H = Data.Height;
+		local CenterX = Data.CenterX;
+		local InnerW = math.max(W - 2, 0);
+		local InnerH = math.max(H - 2, 0);
+
+		if Obj.Name.TextSize ~= Config.TextSize then
+			Obj.Name.TextSize = Config.TextSize;
+			Obj.Info.TextSize = Config.TextSize;
+			Obj.ToolLabel.TextSize = Config.TextSize;
+			Obj.HealthText.TextSize = Config.TextSize;
+		end;
+
+		local ShowBox = Config.Box;
+
+		setVisible(Obj.Outer, ShowBox);
+		setVisible(Obj.Main, ShowBox);
+		setVisible(Obj.Inner, ShowBox);
+
+		if ShowBox then
+			Obj.Outer.Position = UDim2.fromOffset(Left - 1, Top - 1);
+			Obj.Outer.Size = UDim2.fromOffset(W + 2, H + 2);
+			Obj.Main.Position = UDim2.fromOffset(Left, Top);
+			Obj.Main.Size = UDim2.fromOffset(W, H);
+			Obj.MainStroke.Color = Config.BoxColor;
+			Obj.Inner.Position = UDim2.fromOffset(Left + 1, Top + 1);
+			Obj.Inner.Size = UDim2.fromOffset(InnerW, InnerH);
+		end;
+
+		local ShowFill = ShowBox and Config.BoxFill;
+
+		setVisible(Obj.Fill, ShowFill);
+
+		if ShowFill then
+			Obj.Fill.Position = UDim2.fromOffset(Left + 1, Top + 1);
+			Obj.Fill.Size = UDim2.fromOffset(InnerW, InnerH);
+			Obj.Fill.BackgroundColor3 = Config.FillColor;
+			Obj.Fill.BackgroundTransparency = Config.FillTransparency;
+		end;
+
+		local Ratio = Data.HealthRatio;
+		local HealthColor = HealthLow:Lerp(HealthHigh, Ratio);
+		local FillHeight = math.max(math.floor(H * Ratio), 1);
+		local ShowHealth = Config.Health;
+
+		setVisible(Obj.HealthBack, ShowHealth);
+		setVisible(Obj.HealthFill, ShowHealth);
+
+		if ShowHealth then
+			Obj.HealthBack.Position = UDim2.fromOffset(Left - 6, Top - 1);
+			Obj.HealthBack.Size = UDim2.fromOffset(4, H + 2);
+			Obj.HealthFill.Position = UDim2.fromOffset(Left - 5, Top + H);
+			Obj.HealthFill.Size = UDim2.fromOffset(2, FillHeight);
+			Obj.HealthFill.BackgroundColor3 = HealthColor;
+		end;
+
+		local ShowHealthText = ShowHealth and Ratio < 1;
+
+		setVisible(Obj.HealthText, ShowHealthText);
+
+		if ShowHealthText then
+			setText(Obj.HealthText, tostring(math.floor(Data.Health)));
+			Obj.HealthText.TextColor3 = HealthColor;
+			Obj.HealthText.Position = UDim2.fromOffset(Left - 8, Top + H - FillHeight);
+		end;
+
+		local ShowName = Config.Name;
+
+		setVisible(Obj.Name, ShowName);
+
+		if ShowName then
+			setText(Obj.Name, Data.DisplayName);
+			Obj.Name.TextColor3 = Config.NameColor;
+			Obj.Name.Position = UDim2.fromOffset(CenterX, Top - 9);
+		end;
+
+		local OffsetY = Top + H + 8;
+		local ShowDistance = Config.Distance;
+
+		setVisible(Obj.Info, ShowDistance);
+
+		if ShowDistance then
+			setText(Obj.Info, math.floor(Data.Distance) .. "m");
+			Obj.Info.TextColor3 = Config.InfoColor;
+			Obj.Info.Position = UDim2.fromOffset(CenterX, OffsetY);
+			OffsetY = OffsetY + 11;
+		end;
+
+		local ShowTool = Config.Tool and Data.ToolName ~= nil;
+
+		setVisible(Obj.ToolLabel, ShowTool);
+
+		if ShowTool then
+			setText(Obj.ToolLabel, Data.ToolName);
+			Obj.ToolLabel.TextColor3 = Config.InfoColor;
+			Obj.ToolLabel.Position = UDim2.fromOffset(CenterX, OffsetY);
+		end;
+
+		local ShowTracer = Config.Tracer;
+
+		setVisible(Obj.Tracer, ShowTracer);
+
+		if ShowTracer then
+			local FromX = Data.ViewportX / 2;
+			local FromY = Data.ViewportY;
+			local ToY = Top + H;
+			local Dx = CenterX - FromX;
+			local Dy = ToY - FromY;
+
+			Obj.Tracer.Position = UDim2.fromOffset(FromX + Dx / 2, FromY + Dy / 2);
+			Obj.Tracer.Size = UDim2.fromOffset(math.sqrt(Dx * Dx + Dy * Dy), 1);
+			Obj.Tracer.Rotation = math.deg(math.atan2(Dy, Dx));
+			Obj.Tracer.BackgroundColor3 = Config.TracerColor;
+		end;
+	end;
+
+	local MainSection = Target:AddSection({
+		Name = "ESP",
+		Position = "left",
+	});
+
+	local ElementsSection = Target:AddSection({
+		Name = "ELEMENTS",
+		Position = "left",
+	});
+
+	local PreviewSection = Target:AddSection({
+		Name = "ESP PREVIEW",
+		Position = "right",
+	});
+
+	local function addRow(Section, Text, Key, Flag, ColorKey, ColorFlag)
+		local Row = Section:AddLabel(Text);
+
+		local Toggle = Row:AddToggle({
+			Default = Config[Key],
+			Flag = Prefix .. Flag,
+			Callback = function(Value)
+				Config[Key] = Value;
+			end,
+		});
+
+		local Picker;
+
+		if ColorKey then
+			Picker = Row:AddColorPicker({
+				Default = Config[ColorKey],
+				Flag = Prefix .. ColorFlag,
+				Callback = function(Value)
+					Config[ColorKey] = Value;
+				end,
+			});
+		end;
+
+		return Toggle, Picker;
+	end;
+
+	Manager.Toggles = {};
+	Manager.Pickers = {};
+
+	Manager.Toggles.Enabled = addRow(MainSection, "Enabled", "Enabled", "enabled");
+	Manager.Toggles.TeamCheck = addRow(MainSection, "Team Check", "TeamCheck", "teamcheck");
+
+	MainSection:AddLabel("Max Distance"):AddSlider({
+		Min = 100,
+		Max = 5000,
+		Default = Config.MaxDistance,
+		Rounding = 0,
+		Type = "m",
+		Size = 100,
+		Flag = Prefix .. "distance_max",
+		Callback = function(Value)
+			Config.MaxDistance = Value;
+		end,
+	});
+
+	MainSection:AddLabel("Text Size"):AddSlider({
+		Min = 10,
+		Max = 20,
+		Default = Config.TextSize,
+		Rounding = 0,
+		Size = 100,
+		Flag = Prefix .. "textsize",
+		Callback = function(Value)
+			Config.TextSize = Value;
+		end,
+	});
+
+	Manager.Toggles.Box, Manager.Pickers.Box = addRow(ElementsSection, "Box", "Box", "box", "BoxColor", "box_color");
+	Manager.Toggles.BoxFill, Manager.Pickers.BoxFill = addRow(ElementsSection, "Box Fill", "BoxFill", "boxfill", "FillColor", "boxfill_color");
+
+	ElementsSection:AddLabel("Fill Transparency"):AddSlider({
+		Min = 0,
+		Max = 100,
+		Default = math.floor(Config.FillTransparency * 100),
+		Rounding = 0,
+		Type = "%",
+		Size = 100,
+		Flag = Prefix .. "fill_transparency",
+		Callback = function(Value)
+			Config.FillTransparency = Value / 100;
+		end,
+	});
+
+	Manager.Toggles.Name, Manager.Pickers.Name = addRow(ElementsSection, "Name", "Name", "name", "NameColor", "name_color");
+	Manager.Toggles.Health = addRow(ElementsSection, "Health Bar", "Health", "health");
+	Manager.Toggles.Distance, Manager.Pickers.Distance = addRow(ElementsSection, "Distance", "Distance", "distance", "InfoColor", "info_color");
+	Manager.Toggles.Tool = addRow(ElementsSection, "Tool", "Tool", "tool");
+	Manager.Toggles.Tracer, Manager.Pickers.Tracer = addRow(ElementsSection, "Tracer", "Tracer", "tracer", "TracerColor", "tracer_color");
+
+	local EspGui = Instance.new("ScreenGui");
+
+	EspGui.Name = NeverLose.RandomString();
+	EspGui.ResetOnSpawn = false;
+	EspGui.IgnoreGuiInset = true;
+	EspGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
+	EspGui.DisplayOrder = 999;
+
+	ProtectGui(EspGui);
+
+	local ParentOk = pcall(function()
+		EspGui.Parent = CoreGui;
+	end);
+
+	if not ParentOk or not EspGui.Parent then
+		EspGui.Parent = LocalPlayer:WaitForChild("PlayerGui");
+	end;
+
+	local function createEsp(Player)
+		if Objects[Player] then
+			return;
+		end;
+
+		local Holder = Instance.new("Folder");
+
+		Holder.Name = NeverLose.RandomString();
+		Holder.Parent = EspGui;
+
+		local Obj = buildElements(Holder);
+
+		Obj.Holder = Holder;
+		Obj.Hidden = true;
+		Obj.FrameCount = 0;
+
+		Objects[Player] = Obj;
+	end;
+
+	local function removeEsp(Player)
+		local Obj = Objects[Player];
+
+		if Obj then
+			Obj.Holder:Destroy();
+			Objects[Player] = nil;
+		end;
+	end;
+
+	local function hide(Obj)
+		if Obj.Hidden then
+			return;
+		end;
+
+		Obj.Hidden = true;
+		hideElements(Obj);
+	end;
+
+	local function refreshCharacter(Obj, Player)
+		local Character = Player.Character;
+
+		if Character ~= Obj.Character then
+			Obj.Character = Character;
+			Obj.Humanoid = Character and Character:FindFirstChildOfClass("Humanoid");
+			Obj.Root = Character and Character:FindFirstChild("HumanoidRootPart");
+			Obj.Tool = nil;
+		end;
+
+		if Character and (not Obj.Humanoid or not Obj.Humanoid.Parent) then
+			Obj.Humanoid = Character:FindFirstChildOfClass("Humanoid");
+		end;
+
+		if Character and (not Obj.Root or not Obj.Root.Parent) then
+			Obj.Root = Character:FindFirstChild("HumanoidRootPart");
+		end;
+	end;
+
+	local function updatePlayer(Player, Obj, CameraPosition, ViewportSize)
+		if not Config.Enabled then
+			hide(Obj);
+			return;
+		end;
+
+		if Config.TeamCheck and Player.Team ~= nil and Player.Team == LocalPlayer.Team then
+			hide(Obj);
+			return;
+		end;
+
+		refreshCharacter(Obj, Player);
+
+		local Humanoid = Obj.Humanoid;
+		local Root = Obj.Root;
+
+		if not Humanoid or not Root or Humanoid.Health <= 0 then
+			hide(Obj);
+			return;
+		end;
+
+		local RootPosition = Root.Position;
+		local Distance = (CameraPosition - RootPosition).Magnitude;
+
+		if Distance > Config.MaxDistance then
+			hide(Obj);
+			return;
+		end;
+
+		local TopPos, TopVisible = Camera:WorldToViewportPoint(RootPosition + TopOffset);
+
+		if not TopVisible or TopPos.Z <= 0 then
+			hide(Obj);
+			return;
+		end;
+
+		local BottomPos = Camera:WorldToViewportPoint(RootPosition - BottomOffset);
+
+		Obj.Hidden = false;
+
+		local Height = math.abs(BottomPos.Y - TopPos.Y);
+		local W = math.floor(Height * 0.56);
+		local H = math.floor(Height);
+
+		Obj.FrameCount = Obj.FrameCount + 1;
+
+		if Obj.FrameCount % 8 == 0 and Obj.Character then
+			Obj.Tool = Obj.Character:FindFirstChildOfClass("Tool");
+		end;
+
+		local Tool = Obj.Tool;
+		local ToolName = nil;
+
+		if Tool ~= nil and Tool.Parent == Obj.Character then
+			ToolName = Tool.Name;
+		end;
+
+		drawElements(Obj, {
+			Left = math.floor(TopPos.X - W / 2),
+			Top = math.floor(TopPos.Y),
+			Width = W,
+			Height = H,
+			CenterX = TopPos.X,
+			HealthRatio = math.clamp(Humanoid.Health / math.max(Humanoid.MaxHealth, 1), 0, 1),
+			Health = Humanoid.Health,
+			DisplayName = Player.DisplayName,
+			Distance = Distance,
+			ToolName = ToolName,
+			ViewportX = ViewportSize.X,
+			ViewportY = ViewportSize.Y,
+		});
+	end;
+
+	for _, Player in ipairs(Players:GetPlayers()) do
+		if Player ~= LocalPlayer then
+			createEsp(Player);
+		end;
+	end;
+
+	table.insert(Connections, Players.PlayerAdded:Connect(function(Player)
+		if Player ~= LocalPlayer then
+			createEsp(Player);
+		end;
+	end));
+
+	table.insert(Connections, Players.PlayerRemoving:Connect(removeEsp));
+
+	RunService:BindToRenderStep(BindName, Enum.RenderPriority.Camera.Value + 1, function()
+		Camera = workspace.CurrentCamera;
+
+		if not Camera then
+			return;
+		end;
+
+		local CameraPosition = Camera.CFrame.Position;
+		local ViewportSize = Camera.ViewportSize;
+
+		for Player, Obj in pairs(Objects) do
+			updatePlayer(Player, Obj, CameraPosition, ViewportSize);
+		end;
+	end);
+
+	local PreviewFrame = PreviewSection:AddCustomFrame(PreviewHeight);
+	local Holder = PreviewFrame.Root;
+	local Signal = PreviewFrame.Signal;
+	local BaseZ = Holder.ZIndex;
+	local StageHeight = PreviewHeight - 12;
+	local FieldOfView = 30;
+	local PixelsPerStud = StageHeight * 0.7 / 5.8;
+	local CameraDistance = (StageHeight / 2) / (PixelsPerStud * math.tan(math.rad(FieldOfView / 2)));
+
+	local Stage = Instance.new("Frame");
+	local StageCorner = Instance.new("UICorner");
+	local StageStroke = Instance.new("UIStroke");
+
+	Stage.Name = NeverLose.RandomString();
+	Stage.Parent = Holder;
+	Stage.AnchorPoint = Vector2.new(0.5, 0);
+	Stage.BackgroundColor3 = Color3.fromRGB(12, 14, 20);
+	Stage.BackgroundTransparency = 0.15;
+	Stage.BorderSizePixel = 0;
+	Stage.ClipsDescendants = true;
+	Stage.Position = UDim2.new(0.5, 0, 0, 6);
+	Stage.Size = UDim2.new(1, -20, 0, StageHeight);
+	Stage.ZIndex = BaseZ + 1;
+
+	StageCorner.CornerRadius = UDim.new(0, 8);
+	StageCorner.Parent = Stage;
+
+	StageStroke.Color = Color3.fromRGB(45, 48, 58);
+	StageStroke.Transparency = 0.5;
+	StageStroke.Parent = Stage;
+
+	local Viewport = Instance.new("ViewportFrame");
+	local ViewCamera = Instance.new("Camera");
+
+	Viewport.Name = NeverLose.RandomString();
+	Viewport.Parent = Stage;
+	Viewport.BackgroundTransparency = 1;
+	Viewport.BorderSizePixel = 0;
+	Viewport.Size = UDim2.new(1, 0, 1, 0);
+	Viewport.ZIndex = BaseZ + 2;
+	Viewport.Ambient = Color3.fromRGB(170, 170, 180);
+	Viewport.LightColor = Color3.fromRGB(255, 255, 255);
+	Viewport.LightDirection = Vector3.new(-1, -1, -1);
+
+	ViewCamera.FieldOfView = FieldOfView;
+	ViewCamera.CFrame = CFrame.lookAt(Vector3.new(0, 0, CameraDistance), Vector3.zero);
+	ViewCamera.Parent = Viewport;
+	Viewport.CurrentCamera = ViewCamera;
+
+	local Overlay = Instance.new("Frame");
+
+	Overlay.Name = NeverLose.RandomString();
+	Overlay.Parent = Stage;
+	Overlay.BackgroundTransparency = 1;
+	Overlay.BorderSizePixel = 0;
+	Overlay.Size = UDim2.new(1, 0, 1, 0);
+	Overlay.ZIndex = BaseZ + 3;
+
+	local Preview = buildElements(Overlay, BaseZ + 4);
+	local PreviewModel;
+	local Building = false;
+	local Angle = math.pi;
+
+	local function prepareModel(Model)
+		for _, Descendant in ipairs(Model:GetDescendants()) do
+			if Descendant:IsA("BaseScript") or Descendant:IsA("Sound") or Descendant:IsA("ForceField") then
+				Descendant:Destroy();
+			elseif Descendant:IsA("BasePart") then
+				Descendant.Anchored = true;
+			elseif Descendant:IsA("Humanoid") then
+				Descendant.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None;
+				Descendant.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff;
+			end;
+		end;
+
+		local Root = Model:FindFirstChild("HumanoidRootPart");
+
+		if Root then
+			Model.PrimaryPart = Root;
+		end;
+	end;
+
+	local function buildModel()
+		if Building then
+			return;
+		end;
+
+		Building = true;
+
+		local Model;
+		local Character = LocalPlayer.Character;
+
+		if Character then
+			local Previous = Character.Archivable;
+
+			Character.Archivable = true;
+
+			local Ok, Clone = pcall(function()
+				return Character:Clone();
+			end);
+
+			Character.Archivable = Previous;
+
+			if Ok and Clone then
+				Model = Clone;
+			end;
+		end;
+
+		if not Model then
+			local Ok, Result = pcall(function()
+				local Description = Players:GetHumanoidDescriptionFromUserId(LocalPlayer.UserId);
+
+				return Players:CreateHumanoidModelFromDescription(Description, Enum.HumanoidRigType.R15);
+			end);
+
+			if Ok and Result then
+				Model = Result;
+			end;
+		end;
+
+		if Model then
+			if PreviewModel then
+				PreviewModel:Destroy();
+			end;
+
+			prepareModel(Model);
+			Model.Parent = Viewport;
+			PreviewModel = Model;
+		end;
+
+		Building = false;
+	end;
+
+	task.spawn(buildModel);
+
+	table.insert(Connections, LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(1);
+		buildModel();
+	end));
+
+	local function isShown()
+		local Current = Holder;
+
+		while Current and Current ~= NeverLose.ScreenGui do
+			if Current:IsA("GuiObject") and not Current.Visible then
+				return false;
+			end;
+
+			Current = Current.Parent;
+		end;
+
+		return Current == NeverLose.ScreenGui;
+	end;
+
+	table.insert(Connections, RunService.RenderStepped:Connect(function(DeltaTime)
+		if not Signal:GetValue() or not isShown() then
+			return;
+		end;
+
+		Angle = (Angle + DeltaTime * 1.1) % (math.pi * 2);
+
+		if PreviewModel and PreviewModel.Parent then
+			PreviewModel:PivotTo(CFrame.Angles(0, Angle, 0));
+		end;
+
+		local Absolute = Stage.AbsoluteSize;
+
+		if Absolute.Y <= 0 then
+			return;
+		end;
+
+		local StageWidth = Absolute.X / Absolute.Y * StageHeight;
+		local Top = math.floor(StageHeight / 2 - 2.7 * PixelsPerStud);
+		local Bottom = math.floor(StageHeight / 2 + 3.1 * PixelsPerStud);
+		local H = Bottom - Top;
+		local W = math.floor(H * 0.56);
+		local CenterX = math.floor(StageWidth / 2);
+
+		drawElements(Preview, {
+			Left = math.floor(CenterX - W / 2),
+			Top = Top,
+			Width = W,
+			Height = H,
+			CenterX = CenterX,
+			HealthRatio = 0.72,
+			Health = 72,
+			DisplayName = LocalPlayer.DisplayName,
+			Distance = 42,
+			ToolName = "Tool",
+			ViewportX = StageWidth,
+			ViewportY = StageHeight,
+		});
+	end));
+
+	Manager.Config = Config;
+
+	function Manager:Unload()
+		for _, Connection in ipairs(Connections) do
+			pcall(Connection.Disconnect, Connection);
+		end;
+
+		table.clear(Connections);
+
+		pcall(function()
+			RunService:UnbindFromRenderStep(BindName);
+		end);
+
+		for Player in pairs(Objects) do
+			removeEsp(Player);
+		end;
+
+		if PreviewModel then
+			PreviewModel:Destroy();
+			PreviewModel = nil;
+		end;
+
+		EspGui:Destroy();
+	end;
+
+	table.insert(NeverLose.Cleanups, function()
+		Manager:Unload();
+	end);
+
+	return Manager;
 end;
 
 return NeverLose;
