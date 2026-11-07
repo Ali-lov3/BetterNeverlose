@@ -4028,6 +4028,8 @@ function NeverLose:CreateWindow(Config)
 		Content = "Counter-Strike 2",
 		Size = UDim2.new(0, 640, 0, 480),
 		ConfigFolder = "NeverLoseConfigs",
+		AutoLoad = false,
+		AutoLoadConfig = "Default",
 		Enable3DRenderer = false,
 		Keybind = "Insert"
 	});
@@ -4052,6 +4054,8 @@ function NeverLose:CreateWindow(Config)
 		Content = Config.Content,
 		Size = Config.Size,
 		ConfigFolder = Config.ConfigFolder,
+		AutoLoad = Config.AutoLoad,
+		AutoLoadConfig = Config.AutoLoadConfig,
 		Signal = NeverLose:CreateSignal(true),
 		Tabs = {},
 		CurrentTab = 1,
@@ -6066,6 +6070,14 @@ function NeverLose:CreateWindow(Config)
 		local Icon = Instance.new("TextLabel")
 		local UICorner_3 = Instance.new("UICorner")
 		local UICorner_4 = Instance.new("UICorner")
+		local AutoLoadFrame = Instance.new("Frame")
+		local AutoLoadCorner = Instance.new("UICorner")
+		local AutoLoadStroke = Instance.new("UIStroke")
+		local AutoLoadLabel = Instance.new("TextLabel")
+		local AutoLoadPill = Instance.new("Frame")
+		local AutoLoadPillCorner = Instance.new("UICorner")
+		local AutoLoadState = Instance.new("TextLabel")
+		local UpdateAutoLoadUI;
 
 		local shadow = NeverLose:CreateShadow(ConfigMenu);
 
@@ -6100,6 +6112,22 @@ function NeverLose:CreateWindow(Config)
 				})
 				NeverLose.PlayAnimate(Icon , SlowyTween , {
 					TextTransparency = 0.350
+				})
+
+				NeverLose.PlayAnimate(AutoLoadFrame , SlowyTween , {
+					BackgroundTransparency = 0
+				})
+				NeverLose.PlayAnimate(AutoLoadStroke , SlowyTween , {
+					Transparency = 0.5
+				})
+				NeverLose.PlayAnimate(AutoLoadLabel , SlowyTween , {
+					TextTransparency = 0.2
+				})
+				NeverLose.PlayAnimate(AutoLoadPill , SlowyTween , {
+					BackgroundTransparency = 0
+				})
+				NeverLose.PlayAnimate(AutoLoadState , SlowyTween , {
+					TextTransparency = 0
 				})
 
 				NeverLose.PlayAnimate(ConfigBthIcon , SlowyTween , {
@@ -6137,6 +6165,21 @@ function NeverLose:CreateWindow(Config)
 					TextTransparency = 1
 				})
 				NeverLose.PlayAnimate(Icon , SlowyTween , {
+					TextTransparency = 1
+				})
+				NeverLose.PlayAnimate(AutoLoadFrame , SlowyTween , {
+					BackgroundTransparency = 1
+				})
+				NeverLose.PlayAnimate(AutoLoadStroke , SlowyTween , {
+					Transparency = 1
+				})
+				NeverLose.PlayAnimate(AutoLoadLabel , SlowyTween , {
+					TextTransparency = 1
+				})
+				NeverLose.PlayAnimate(AutoLoadPill , SlowyTween , {
+					BackgroundTransparency = 1
+				})
+				NeverLose.PlayAnimate(AutoLoadState , SlowyTween , {
 					TextTransparency = 1
 				})
 
@@ -6319,6 +6362,95 @@ function NeverLose:CreateWindow(Config)
 
 		UICorner_4.CornerRadius = UDim.new(0, 12)
 		UICorner_4.Parent = InputFrame
+
+		InputFrame.LayoutOrder = -2
+
+		AutoLoadFrame.Name = NeverLose.RandomString();
+		AutoLoadFrame.Parent = ConfigMenu
+		AutoLoadFrame.BackgroundColor3 = Color3.fromRGB(7, 11, 24)
+		AutoLoadFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		AutoLoadFrame.BorderSizePixel = 0
+		AutoLoadFrame.LayoutOrder = -1
+		AutoLoadFrame.Size = UDim2.new(1, -10, 0, 30)
+		AutoLoadFrame.ZIndex = 153
+
+		AutoLoadCorner.CornerRadius = UDim.new(0, 7)
+		AutoLoadCorner.Parent = AutoLoadFrame
+
+		AutoLoadStroke.Transparency = 0.500
+		AutoLoadStroke.Color = Color3.fromRGB(24, 40, 78)
+		AutoLoadStroke.Parent = AutoLoadFrame
+
+		AutoLoadLabel.Name = NeverLose.RandomString();
+		AutoLoadLabel.Parent = AutoLoadFrame
+		AutoLoadLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		AutoLoadLabel.BackgroundTransparency = 1.000
+		AutoLoadLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		AutoLoadLabel.BorderSizePixel = 0
+		AutoLoadLabel.Position = UDim2.new(0, 11, 0, 7)
+		AutoLoadLabel.Size = UDim2.new(0, 1, 0, 15)
+		AutoLoadLabel.ZIndex = 153
+		AutoLoadLabel.Font = Enum.Font.GothamMedium
+		AutoLoadLabel.Text = "Autoload"
+		AutoLoadLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		AutoLoadLabel.TextSize = 13.000
+		AutoLoadLabel.TextTransparency = 0.200
+		AutoLoadLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+		AutoLoadPill.Name = NeverLose.RandomString();
+		AutoLoadPill.Parent = AutoLoadFrame
+		AutoLoadPill.AnchorPoint = Vector2.new(1, 0.5)
+		AutoLoadPill.BackgroundColor3 = Color3.fromRGB(17, 26, 54)
+		AutoLoadPill.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		AutoLoadPill.BorderSizePixel = 0
+		AutoLoadPill.ClipsDescendants = true
+		AutoLoadPill.Position = UDim2.new(1, -8, 0.5, 0)
+		AutoLoadPill.Size = UDim2.new(0, 44, 0, 18)
+		AutoLoadPill.ZIndex = 153
+
+		AutoLoadPillCorner.CornerRadius = UDim.new(0, 6)
+		AutoLoadPillCorner.Parent = AutoLoadPill
+
+		AutoLoadState.Name = NeverLose.RandomString();
+		AutoLoadState.Parent = AutoLoadPill
+		AutoLoadState.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		AutoLoadState.BackgroundTransparency = 1.000
+		AutoLoadState.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		AutoLoadState.BorderSizePixel = 0
+		AutoLoadState.Size = UDim2.new(1, 0, 1, 0)
+		AutoLoadState.ZIndex = 153
+		AutoLoadState.Font = Enum.Font.GothamBold
+		AutoLoadState.Text = "OFF"
+		AutoLoadState.TextColor3 = Color3.fromRGB(150, 160, 190)
+		AutoLoadState.TextSize = 11.000
+
+		UpdateAutoLoadUI = function()
+			local enabled = Window.AutoLoad and true or false;
+
+			AutoLoadState.Text = enabled and "ON" or "OFF";
+
+			NeverLose.PlayAnimate(AutoLoadPill , FastTween , {
+				BackgroundColor3 = enabled and NeverLose.AccentColor or Color3.fromRGB(17, 26, 54)
+			});
+
+			NeverLose.PlayAnimate(AutoLoadState , FastTween , {
+				TextColor3 = enabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 160, 190)
+			});
+		end;
+
+		local _, AutoLoadSignal = NeverLose:CreateInput(AutoLoadFrame , function()
+			if Window.AutoLoad then
+				Window:SetAutoLoad(false);
+
+				Logging.new("folder","Autoload disabled",3.5);
+			else
+				Window:SetAutoLoad(true , ConfigLib.SelectedConfig or "Default");
+
+				Logging.new("folder","Autoload enabled for "..tostring(Window.AutoLoadConfig),3.5);
+			end;
+		end);
+
+		NeverLose:AddSignal(AutoLoadSignal);
 
 		local OpenButton = Instance.new("TextButton")
 		local UICorner = Instance.new("UICorner")
@@ -6684,35 +6816,102 @@ function NeverLose:CreateWindow(Config)
 			table.clear(ConfigList);
 		end;
 
-		task.delay(1,function()
-			if ConfigLib.SelectedConfig == "Default" then
-				local path = Window.ConfigFolder..'/Default';
-				local ConfigNameStr = "Default";
+		local function StartAutoSave()
+			if ConfigLib.AutoSaveRunning then
+				return;
+			end;
 
-				if isfile(path) then
-					local data = readfile(path);
+			ConfigLib.AutoSaveRunning = true;
 
-					ConfigLib:LoadData(data);
+			task.spawn(function()
+				while Window.AutoLoad do
+					task.wait(5.75);
 
-					ConfigLib.SelectedConfig = ConfigNameStr;
-					ConfigName.Text = ConfigNameStr;
+					local autoName = Window.AutoLoadConfig or "Default";
+					local path = Window.ConfigFolder..'/'..autoName;
 
-					UpdateSize();
+					if Window.AutoLoad and isfile(path) and ConfigLib.SelectedConfig == autoName then
+						writefile(path,ConfigLib:GetData(true));
+					end;
+				end;
 
-					ConfigLib:RefreshConfig();
+				ConfigLib.AutoSaveRunning = false;
+			end);
+		end;
 
-					Logging.new("folder","Loaded Default Config",3.5);
+		local function RunAutoLoad()
+			local autoName = Window.AutoLoadConfig or "Default";
+			local path = Window.ConfigFolder..'/'..autoName;
 
-					task.spawn(function()
-						while true do task.wait(5.75);
-							if isfile(path) and ConfigLib.SelectedConfig == "Default" then
-								writefile(Window.ConfigFolder..'/Default',ConfigLib:GetData(true));
-							end;
-						end;
-					end);
+			if isfile(path) then
+				local data = readfile(path);
+
+				ConfigLib:LoadData(data);
+
+				ConfigLib.SelectedConfig = autoName;
+				ConfigName.Text = autoName;
+
+				UpdateSize();
+
+				ConfigLib:RefreshConfig();
+
+				Logging.new("folder","Loaded "..autoName.." Config",3.5);
+			end;
+
+			StartAutoSave();
+		end;
+
+		local AutoLoadFile = Window.ConfigFolder..'_AutoLoad';
+
+		local function SaveAutoLoadState()
+			pcall(function()
+				if Window.AutoLoad then
+					writefile(AutoLoadFile , Window.AutoLoadConfig or "Default");
+				else
+					writefile(AutoLoadFile , "");
+				end;
+			end);
+		end;
+
+		pcall(function()
+			if isfile(AutoLoadFile) then
+				local saved = readfile(AutoLoadFile);
+
+				if type(saved) == "string" and saved ~= "" then
+					Window.AutoLoad = true;
+					Window.AutoLoadConfig = saved;
+				else
+					Window.AutoLoad = false;
 				end;
 			end;
 		end);
+
+		UpdateAutoLoadUI();
+
+		task.delay(1,function()
+			if Window.AutoLoad then
+				RunAutoLoad();
+			end;
+		end);
+
+		function Window:SetAutoLoad(Enabled , TargetName)
+			Window.AutoLoad = Enabled and true or false;
+
+			if type(TargetName) == "string" and TargetName ~= "" then
+				Window.AutoLoadConfig = TargetName;
+			end;
+
+			if Window.AutoLoad then
+				StartAutoSave();
+			end;
+
+			SaveAutoLoadState();
+			UpdateAutoLoadUI();
+		end;
+
+		function Window:GetAutoLoad()
+			return Window.AutoLoad , Window.AutoLoadConfig;
+		end;
 
 		local hover_write = NeverLose:CreateInput(ConfigIcon,function()
 			local path = Window.ConfigFolder..'/'..(ConfigLib.SelectedConfig or "Default");
